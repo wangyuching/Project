@@ -21,7 +21,7 @@ def calculate_angle(a, b, c):
 def get_coords(landmark, w, h):
     return np.array([landmark.x * w, landmark.y * h])
 
-def frame(img, results, w, h):
+def frame(img_bgr, results, w, h):
 
     left_elbow_angle = 0
     right_elbow_angle = 0
@@ -30,7 +30,7 @@ def frame(img, results, w, h):
 
     try:        
         if not results.pose_landmarks:
-            return img, left_elbow_angle, right_elbow_angle, left_distence, right_distence
+            return img_bgr, left_elbow_angle, right_elbow_angle, left_distence, right_distence
             
         landmarks = results.pose_landmarks.landmark
 
@@ -47,21 +47,21 @@ def frame(img, results, w, h):
 
         ''' ---------- 顯示左手肘角度 ---------- '''
         cv2.putText(
-            img, f"Left Elbow: {int(left_elbow_angle)} deg",
+            img_bgr, f"Left Elbow: {int(left_elbow_angle)} deg",
             (670, 50), cv2.FONT_HERSHEY_SIMPLEX,
             1, (0, 255, 255), 2
         )
         
         ''' ---------- 著色>左手部面積 BGR ---------- '''
         points_int = np.array([p15, p17, p19, p21], dtype=np.int32).reshape((-1, 1, 2))
-        cv2.fillPoly(img, [points_int], (255, 200, 0))
+        cv2.fillPoly(img_bgr, [points_int], (255, 200, 0))
 
         ''' ---------- 計算左手部四點的平均作為中心點 ---------- '''
         left_hand_points = np.array([p15, p17, p19, p21])
         left_hand_center = np.mean(left_hand_points, axis=0)
 
         ''' ---------- 著色>左手部中心點 ---------- '''
-        cv2.circle(img, (int(left_hand_center[0]), int(left_hand_center[1])), 8, (0, 255, 255), -1)
+        cv2.circle(img_bgr, (int(left_hand_center[0]), int(left_hand_center[1])), 8, (0, 255, 255), -1)
 
 
         ''' ---------- 右手部landmark 右肩[12]-右肘[14]-右腕[16], 右腕[16]-右小指[18]-右食指[20]-右姆指[22] ---------- '''
@@ -77,21 +77,21 @@ def frame(img, results, w, h):
 
         ''' ---------- 顯示右手肘角度 ---------- '''
         cv2.putText(
-            img, f"Right Elbow: {int(right_elbow_angle)} deg",
+            img_bgr, f"Right Elbow: {int(right_elbow_angle)} deg",
             (50, 50), cv2.FONT_HERSHEY_SIMPLEX,
             1, (0, 0, 255), 2
         )
 
         ''' ---------- 著色>右手部面積 BGR ---------- '''
         points_int = np.array([p16, p18, p20, p22], dtype=np.int32).reshape((-1, 1, 2))
-        cv2.fillPoly(img, [points_int], (255, 0, 0))
+        cv2.fillPoly(img_bgr, [points_int], (255, 0, 0))
 
         ''' ---------- 計算右手部四點的平均作為中心點 ---------- '''
         right_hand_points = np.array([p16, p18, p20, p22])
         right_hand_center = np.mean(right_hand_points, axis=0)
         
         ''' ---------- 著色>右手部中心點 ---------- '''
-        cv2.circle(img, (int(right_hand_center[0]), int(right_hand_center[1])), 8, (125, 0, 255), -1)
+        cv2.circle(img_bgr, (int(right_hand_center[0]), int(right_hand_center[1])), 8, (125, 0, 255), -1)
 
 
         ''' ---------- 嘴部landmark 嘴左角[9]-嘴右角[10] ---------- '''
@@ -102,21 +102,21 @@ def frame(img, results, w, h):
         mouth_center_point = (p9 + p10) / 2
 
         ''' ---------- 顯示嘴角二點中心點 ---------- '''
-        cv2.circle(img, (int(mouth_center_point[0]), int(mouth_center_point[1])), 8, (0, 255, 0), -1)
+        cv2.circle(img_bgr, (int(mouth_center_point[0]), int(mouth_center_point[1])), 8, (0, 255, 0), -1)
 
 
         """ ------ 左手部中心點到嘴角二點中心點的距離 ------ """
         left_distence = np.linalg.norm(left_hand_center - mouth_center_point)
-        cv2.putText(img, f"Left Hand to Mouth distence: {int(left_distence)} px",
+        cv2.putText(img_bgr, f"Left Hand to Mouth distence: {int(left_distence)} px",
                     (670, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
 
         """ ------ 右手部中心點到嘴角二點中心點的距離 ------ """
         right_distence = np.linalg.norm(right_hand_center - mouth_center_point)
-        cv2.putText(img, f"Right Hand to Mouth distence: {int(right_distence)} px",
+        cv2.putText(img_bgr, f"Right Hand to Mouth distence: {int(right_distence)} px",
                     (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (125, 0, 255), 2)
         
-        return img, left_elbow_angle, right_elbow_angle, left_distence, right_distence
+        return img_bgr, left_elbow_angle, right_elbow_angle, left_distence, right_distence
 
     except Exception as e:
         print("Error:", e)
-        return img, left_elbow_angle, right_elbow_angle, left_distence, right_distence
+        return img_bgr, left_elbow_angle, right_elbow_angle, left_distence, right_distence
