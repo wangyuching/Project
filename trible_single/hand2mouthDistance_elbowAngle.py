@@ -119,7 +119,7 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
 
                 """ ------ 左手部中心點到嘴角二點中心點的距離 ------ """
                 left_distence = np.linalg.norm(left_hand_center - mouth_center_point)
-                cv2.putText(img, f"Left Hand to Mouth Distance: {int(left_distence)} px",
+                cv2.putText(img, f"Left Hand to Mouth distence: {int(left_distence)} px",
                             (670, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
                 # cv2.line(img, (int(left_hand_center[0]), int(left_hand_center[1])), 
                 #             (int(mouth_center_point[0]), int(mouth_center_point[1])),
@@ -127,7 +127,7 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
 
                 """ ------ 右手部中心點到嘴角二點中心點的距離 ------ """
                 right_distence = np.linalg.norm(right_hand_center - mouth_center_point)
-                cv2.putText(img, f"Right Hand to Mouth Distance: {int(right_distence)} px",
+                cv2.putText(img, f"Right Hand to Mouth distence: {int(right_distence)} px",
                             (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (125, 0, 255), 2)
                 # cv2.line(img, (int(right_hand_center[0]), int(right_hand_center[1])), 
                 #             (int(mouth_center_point[0]), int(mouth_center_point[1])),
