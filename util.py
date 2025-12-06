@@ -118,6 +118,15 @@ def frame(img, results, w, h):
         cv2.putText(img, f"Right Hand to Mouth distence: {int(right_distence)} px",
                     (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (125, 0, 255), 2)
         
+        ''' ---------- 畫 Pose's landmarks, utils ---------- '''
+        mp_drawing.draw_landmarks(
+            img,
+            results.pose_landmarks,
+            mp_pose.POSE_CONNECTIONS,
+            mp_drawing.DrawingSpec(color=(245, 117, 66), thickness=2, circle_radius=4),
+            mp_drawing.DrawingSpec(color=(245, 66, 230), thickness=2, circle_radius=2)
+        )
+        
         return img, left_elbow_angle, right_elbow_angle, left_distence, right_distence
 
     except Exception as e:
