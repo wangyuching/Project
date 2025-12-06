@@ -2,6 +2,9 @@ import cv2
 import mediapipe as mp
 import numpy as np
 
+mp_drawing = mp.solutions.drawing_utils
+mp_pose = mp.solutions.pose
+
 def calculate_angle(a, b, c):
     """
     計算三點 a-b-c 的夾角（以 b 為頂點）
@@ -115,6 +118,15 @@ def frame(img_bgr, results, w, h):
         cv2.putText(img_bgr, f"Right Hand to Mouth distence: {int(right_distence)} px",
                     (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (125, 0, 255), 2)
         
+        ''' ---------- 畫 Pose's landmarks ---------- '''
+        mp_drawing.draw_landmarks(
+            img_bgr,
+            results.pose_landmarks,
+            mp_pose.POSE_CONNECTIONS,
+            mp_drawing.DrawingSpec(color=(245, 117, 66), thickness=2, circle_radius=4),
+            mp_drawing.DrawingSpec(color=(245, 66, 230), thickness=2, circle_radius=2)
+        )
+
         return img_bgr, left_elbow_angle, right_elbow_angle, left_distence, right_distence
 
     except Exception as e:
