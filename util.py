@@ -2,13 +2,6 @@ import cv2
 import mediapipe as mp
 import numpy as np
 
-mp_drawing = mp.solutions.drawing_utils
-mp_pose = mp.solutions.pose
-
-''' ------ 座標轉換 (將正規化座標 [0, 1] 轉換為實際像素座標 [0*w, 1*h]) ------ '''
-def get_coords(landmark, w, h):
-    return np.array([landmark.x * w, landmark.y * h])
-
 def calculate_angle(a, b, c):
     """
     計算三點 a-b-c 的夾角（以 b 為頂點）
@@ -23,6 +16,10 @@ def calculate_angle(a, b, c):
 
     angle = np.degrees(np.arccos(cosine_angle))
     return angle
+
+''' ------ 座標轉換 (將正規化座標 [0, 1] 轉換為實際像素座標 [0*w, 1*h]) ------ '''
+def get_coords(landmark, w, h):
+    return np.array([landmark.x * w, landmark.y * h])
 
 def frame(img, results, w, h):
 
@@ -118,33 +115,8 @@ def frame(img, results, w, h):
         cv2.putText(img, f"Right Hand to Mouth distence: {int(right_distence)} px",
                     (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (125, 0, 255), 2)
         
-        ''' ---------- 畫 Pose's landmarks, utils ---------- '''
-        mp_drawing.draw_landmarks(
-            img,
-            results.pose_landmarks,
-            mp_pose.POSE_CONNECTIONS,
-            mp_drawing.DrawingSpec(color=(245, 117, 66), thickness=2, circle_radius=4),
-            mp_drawing.DrawingSpec(color=(245, 66, 230), thickness=2, circle_radius=2)
-        )
-        
         return img, left_elbow_angle, right_elbow_angle, left_distence, right_distence
 
     except Exception as e:
         print("Error:", e)
         return img, left_elbow_angle, right_elbow_angle, left_distence, right_distence
-
-# def calculate_quadrilateral_area(p15, p17, p21, p19):
-#     """
-#     鞋帶公式順時針計算四個點 (P15, P17, P19, P21) 形成的四邊形面積。
-#     """
-#     points = np.array([p15, p17, p19, p21])
-    
-#     x = points[:, 0]
-#     y = points[:, 1]
-    
-#     sum1 = np.sum(x * np.roll(y, -1)) 
-#     sum2 = np.sum(y * np.roll(x, -1)) 
-    
-#     area = 0.5 * np.abs(sum1 - sum2)
-    
-#     return area 

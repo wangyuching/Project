@@ -1,0 +1,15 @@
+def calculate_quadrilateral_area(p15, p17, p21, p19):
+    """
+    鞋帶公式順時針計算四個點 (P15, P17, P19, P21) 形成的四邊形面積。
+    """
+    points = np.array([p15, p17, p19, p21])
+    
+    x = points[:, 0]
+    y = points[:, 1]
+    
+    sum1 = np.sum(x * np.roll(y, -1)) 
+    sum2 = np.sum(y * np.roll(x, -1)) 
+    
+    area = 0.5 * np.abs(sum1 - sum2)
+    
+    return area 
