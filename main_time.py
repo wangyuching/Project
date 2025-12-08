@@ -1,5 +1,6 @@
 import cv2
 import mediapipe as mp
+import time as t
 import DrawUtil
 from datetime import datetime as dt
 
@@ -9,6 +10,7 @@ mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
 w, h = 1000, 750
+detect, alert = 30, 5
 cap = cv2.VideoCapture(0)
 
 with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as pose:
@@ -30,6 +32,9 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
          left_distence, right_distence) = DrawUtil.frame(img_bgr, results, w, h)
 
         try:
+            ''' ---------- 計時 ---------- '''
+
+
             ''' ---------- 判斷吃藥動作 ---------- '''
             if left_elbow_angle < 50 and left_distence < 150 :
                 cv2.putText(DrawUtil_img_bgr, "Eat Meduicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 5, (255, 0, 0), 15)
