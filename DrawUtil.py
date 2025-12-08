@@ -82,7 +82,7 @@ def frame(img_bgr, results, w, h):
         cv2.putText(
             img_bgr, f"Right Elbow: {int(right_elbow_angle)} deg",
             (50, 50), cv2.FONT_HERSHEY_SIMPLEX,
-            1, (0, 0, 255), 2
+            1, (255, 0, 255), 2
         )
 
         ''' ---------- 著色>右手部面積 BGR ---------- '''
@@ -116,7 +116,7 @@ def frame(img_bgr, results, w, h):
         """ ------ 右手部中心點到嘴角二點中心點的距離 ------ """
         right_distence = np.linalg.norm(right_hand_center - mouth_center_point)
         cv2.putText(img_bgr, f"Right Hand to Mouth distence: {int(right_distence)} px",
-                    (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (125, 0, 255), 2)
+                    (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 255), 2)
         
         ''' ---------- 畫 Pose's landmarks ---------- '''
         mp_drawing.draw_landmarks(
