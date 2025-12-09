@@ -34,10 +34,10 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
             if detect > 0:
                 while detect >= 0:
                     mins, secs = divmod(detect, 60)
-                    timer = '{:02d}:{:02d}'.format(mins, secs)
+                    detect_timer = '{:02d}:{:02d}'.format(mins, secs)
                     # print(timer, end='\r')
-                    print(timer)
-                    cv2.putText(DrawUtil_img_bgr, timer, (450, 300), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
+                    print(detect_timer)
+                    cv2.putText(DrawUtil_img_bgr, detect_timer, (450, 300), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
                     t.sleep(1)
                     detect -= 1
                 print("END 1", end='\n\n')
@@ -46,10 +46,10 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
                 if detect <= 0 and alert > 0:
                     while alert >= 0:
                         mins, secs = divmod(alert, 60)
-                        timer = '{:02d}:{:02d}'.format(mins, secs)
+                        alert_timer = '{:02d}:{:02d}'.format(mins, secs)
                         # print(timer, end='\r')
-                        print(timer)
-                        cv2.putText(DrawUtil_img_bgr, timer, (50, 300), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
+                        print(alert_timer)
+                        cv2.putText(DrawUtil_img_bgr, alert_timer, (50, 300), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
                         t.sleep(1)
                         alert -= 1
                     print("END 2", end='\n\n')

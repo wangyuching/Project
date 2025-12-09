@@ -37,6 +37,17 @@ def frame(img_bgr, results, w, h):
             
         landmarks = results.pose_landmarks.landmark
 
+        ''' ---------- 嘴部landmark 嘴左角[9]-嘴右角[10] ---------- '''
+        p9 = get_coords(landmarks[9], w, h)   #嘴左角
+        p10 = get_coords(landmarks[10], w, h) #嘴右角
+
+        ''' ---------- 計算嘴角二點中心點 ---------- '''
+        mouth_center_point = (p9 + p10) / 2
+
+        ''' ---------- 顯示嘴角二點中心點 ---------- '''
+        cv2.circle(img_bgr, (int(mouth_center_point[0]), int(mouth_center_point[1])), 8, (0, 255, 0), -1)
+
+
         ''' ---------- 左手部landmark 左肩[11]-左肘[13]-左腕[15], 左腕[15]-左小指[17]-左食指[19]-左姆指[21] ---------- '''
         p11 = get_coords(landmarks[11], w, h) #左肩
         p13 = get_coords(landmarks[13], w, h) #左肘
@@ -51,8 +62,8 @@ def frame(img_bgr, results, w, h):
         ''' ---------- 顯示左手肘角度 ---------- '''
         cv2.putText(
             img_bgr, f"Left Elbow: {int(left_elbow_angle)} deg",
-            (670, 50), cv2.FONT_HERSHEY_SIMPLEX,
-            1, (0, 255, 255), 2
+            (660, 50), cv2.FONT_HERSHEY_SIMPLEX,
+            0.9, (0, 255, 255), 2
         )
         
         ''' ---------- 著色>左手部面積 BGR ---------- '''
@@ -65,6 +76,13 @@ def frame(img_bgr, results, w, h):
 
         ''' ---------- 著色>左手部中心點 ---------- '''
         cv2.circle(img_bgr, (int(left_hand_center[0]), int(left_hand_center[1])), 8, (0, 255, 255), -1)
+
+        """ ------ 左手部中心點到嘴角二點中心點的距離 ------ """
+        left_distence = np.linalg.norm(left_hand_center - mouth_center_point)
+        cv2.putText(img_bgr, f"Left Hand to ",
+                    (660, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+        cv2.putText(img_bgr, f"Mouth distence: {int(left_distence)} px",
+                    (660, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
 
 
         ''' ---------- 右手部landmark 右肩[12]-右肘[14]-右腕[16], 右腕[16]-右小指[18]-右食指[20]-右姆指[22] ---------- '''
@@ -81,8 +99,8 @@ def frame(img_bgr, results, w, h):
         ''' ---------- 顯示右手肘角度 ---------- '''
         cv2.putText(
             img_bgr, f"Right Elbow: {int(right_elbow_angle)} deg",
-            (50, 50), cv2.FONT_HERSHEY_SIMPLEX,
-            1, (255, 0, 255), 2
+            (30, 50), cv2.FONT_HERSHEY_SIMPLEX,
+            0.9, (255, 0, 255), 2
         )
 
         ''' ---------- 著色>右手部面積 BGR ---------- '''
@@ -96,28 +114,14 @@ def frame(img_bgr, results, w, h):
         ''' ---------- 著色>右手部中心點 ---------- '''
         cv2.circle(img_bgr, (int(right_hand_center[0]), int(right_hand_center[1])), 8, (125, 0, 255), -1)
 
-
-        ''' ---------- 嘴部landmark 嘴左角[9]-嘴右角[10] ---------- '''
-        p9 = get_coords(landmarks[9], w, h)   #嘴左角
-        p10 = get_coords(landmarks[10], w, h) #嘴右角
-
-        ''' ---------- 計算嘴角二點中心點 ---------- '''
-        mouth_center_point = (p9 + p10) / 2
-
-        ''' ---------- 顯示嘴角二點中心點 ---------- '''
-        cv2.circle(img_bgr, (int(mouth_center_point[0]), int(mouth_center_point[1])), 8, (0, 255, 0), -1)
-
-
-        """ ------ 左手部中心點到嘴角二點中心點的距離 ------ """
-        left_distence = np.linalg.norm(left_hand_center - mouth_center_point)
-        cv2.putText(img_bgr, f"Left Hand to Mouth distence: {int(left_distence)} px",
-                    (670, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
-
         """ ------ 右手部中心點到嘴角二點中心點的距離 ------ """
         right_distence = np.linalg.norm(right_hand_center - mouth_center_point)
-        cv2.putText(img_bgr, f"Right Hand to Mouth distence: {int(right_distence)} px",
-                    (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 255), 2)
-        
+        cv2.putText(img_bgr, f"Right Hand to ",
+                    (30, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 2)
+        cv2.putText(img_bgr, f"Mouth distence: {int(right_distence)} px",
+                    (30, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 2)
+
+
         ''' ---------- 畫 Pose's landmarks ---------- '''
         mp_drawing.draw_landmarks(
             img_bgr,
