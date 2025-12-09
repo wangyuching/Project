@@ -56,7 +56,8 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
 
                 min, secs = divmod(remaining_time, 60)
                 detect_timer = '{:02d}:{:02d}'.format(min, secs)
-                cv2.putText(DrawUtil_img_bgr, detect_timer, (450, 300), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
+                cv2.putText(DrawUtil_img_bgr, "Detect:", (390, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
+                cv2.putText(DrawUtil_img_bgr, detect_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
 
                 if remaining_time <= 0:
                     print("END 1 - Detect Timer Finished", end='\n\n')
@@ -73,7 +74,8 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
 
                 min, secs = divmod(remaining_time, 60)
                 alert_timer = '{:02d}:{:02d}'.format(min, secs)
-                cv2.putText(DrawUtil_img_bgr, alert_timer, (450, 300), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
+                cv2.putText(DrawUtil_img_bgr, "Alert:", (423, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
+                cv2.putText(DrawUtil_img_bgr, alert_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
 
                 if remaining_time <= 0:
                     print("END 2 - Alert Timer Finished", end='\n\n')
