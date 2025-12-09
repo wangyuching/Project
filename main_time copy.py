@@ -36,10 +36,12 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
 
 
         ''' ---------- 判斷吃藥動作 ---------- '''
-        # is_eating_medicine = False
+        is_eating_medicine = False
         if left_elbow_angle < 50 and left_distence < 150 :
+            is_eating_medicine = True
             cv2.putText(DrawUtil_img_bgr, "Eat Meduicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 5, (255, 0, 0), 15)
         elif right_elbow_angle < 50 and right_distence < 150 :
+            is_eating_medicine = True
             cv2.putText(DrawUtil_img_bgr, "Eat Meduicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 5, (255, 0, 0), 15)
         else:
             pass
@@ -59,9 +61,11 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
                 cv2.putText(DrawUtil_img_bgr, "Detect:", (390, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
                 cv2.putText(DrawUtil_img_bgr, detect_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
 
-                if remaining_time <= 0:
+                if is_eating_medicine:
+                    current_timer_state = "DETECT"
+                    detect_start_time = None
+                elif remaining_time <= 0 and not is_eating_medicine:
                     print("END 1 - Detect Timer Finished", end='\n\n')
-                    cv2.putText(DrawUtil_img_bgr, "!!! Detect TIMER STOP !!!", (50, 300), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
                     current_timer_state = "ALERT"
                     alert_start_time = None
 
@@ -77,15 +81,14 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
                 cv2.putText(DrawUtil_img_bgr, "Alert:", (423, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
                 cv2.putText(DrawUtil_img_bgr, alert_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
 
-                if remaining_time <= 0:
+                if is_eating_medicine:
+                    current_timer_state = "DETECT"
+                    detect_start_time = None
+                elif remaining_time <= 0 and not is_eating_medicine:
                     print("END 2 - Alert Timer Finished", end='\n\n')
-                    cv2.putText(DrawUtil_img_bgr, "!!! Alert TIMER STOP !!!", (50, 300), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
                     current_timer_state = "DETECT"
                     detect_start_time = None
 
-            # if is_eating_medicine:
-            #     cv2.putText(DrawUtil_img_bgr, "Eat Meduicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 5, (255, 0, 0), 15)
-                        
             ''' ---------- 顯示目前時間 ---------- '''
             cv2.putText(DrawUtil_img_bgr, f"{now}", (120, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 5)
 
