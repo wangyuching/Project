@@ -60,7 +60,7 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
                     detect_start_time = current_time
 
                 elapsed_time = current_time - detect_start_time
-                remaining_time = max(0, detect - round(elapsed_time))
+                remaining_time = max(0, detect - int(elapsed_time))
 
                 min, secs = divmod(remaining_time, 60)
                 detect_timer = '{:02d}:{:02d}'.format(min, secs)
@@ -73,6 +73,8 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
                     count_eating_medicine = 0
                 elif remaining_time <= 0 and not is_eating_medicine:
                     print("END 1 - Detect Timer Finished", end='\n\n')
+                    cv2.putText(DrawUtil_img_bgr, "Detect:", (390, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
+                    cv2.putText(DrawUtil_img_bgr, detect_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
                     current_timer_state = "ALERT"
                     alert_start_time = None
                     count_eating_medicine = 0
@@ -82,7 +84,7 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
                     alert_start_time = current_time
 
                 elapsed_time = current_time - alert_start_time
-                remaining_time = max(0, alert - round(elapsed_time))
+                remaining_time = max(0, alert - int(elapsed_time))
 
                 min, secs = divmod(remaining_time, 60)
                 alert_timer = '{:02d}:{:02d}'.format(min, secs)
@@ -90,7 +92,9 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
                 cv2.putText(DrawUtil_img_bgr, alert_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
 
                 if is_eating_medicine and count_eating_medicine >= 2:
-                    current_timer_state = "DETECT"
+                    cv2.putText(DrawUtil_img_bgr, "Alert:", (423, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
+                    cv2.putText(DrawUtil_img_bgr, alert_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
+                    current_timer_state = "DETECT"    
                     detect_start_time = None
                     count_eating_medicine = 0
                 elif remaining_time <= 0 and not is_eating_medicine:
