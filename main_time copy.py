@@ -11,6 +11,8 @@ w, h = 1000, 750
 detect, alert = 5, 3
 cap = cv2.VideoCapture(0)
 
+count_eating_medicine = 0
+
 detect_start_time = None
 alert_start_time = None
 current_timer_state = "DETECT"
@@ -38,13 +40,17 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
         is_eating_medicine = False
         
         if left_elbow_angle < 50 and left_distence < 150 :
+            count_eating_medicine += 1
             is_eating_medicine = True
             cv2.putText(DrawUtil_img_bgr, "Eat Meduicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 5, (255, 0, 0), 15)
         elif right_elbow_angle < 50 and right_distence < 150 :
+            count_eating_medicine += 1
             is_eating_medicine = True
             cv2.putText(DrawUtil_img_bgr, "Eat Meduicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 5, (255, 0, 0), 15)
         else:
             pass
+
+        cv2.putText(DrawUtil_img_bgr, f"Count: {count_eating_medicine}", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4)
         
         try:
             ''' ---------- 計時 ---------- '''
@@ -61,13 +67,15 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
                 cv2.putText(DrawUtil_img_bgr, "Detect:", (390, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
                 cv2.putText(DrawUtil_img_bgr, detect_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
 
-                if is_eating_medicine:
+                if is_eating_medicine and count_eating_medicine >= 2:
                     current_timer_state = "DETECT"
                     detect_start_time = None
+                    count_eating_medicine = 0
                 elif remaining_time <= 0 and not is_eating_medicine:
                     print("END 1 - Detect Timer Finished", end='\n\n')
                     current_timer_state = "ALERT"
                     alert_start_time = None
+                    count_eating_medicine = 0
 
             elif current_timer_state == "ALERT":
                 if alert_start_time is None:
@@ -81,13 +89,15 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
                 cv2.putText(DrawUtil_img_bgr, "Alert:", (423, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
                 cv2.putText(DrawUtil_img_bgr, alert_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
 
-                if is_eating_medicine:
+                if is_eating_medicine and count_eating_medicine >= 2:
                     current_timer_state = "DETECT"
                     detect_start_time = None
+                    count_eating_medicine = 0
                 elif remaining_time <= 0 and not is_eating_medicine:
                     print("END 2 - Alert Timer Finished", end='\n\n')
                     current_timer_state = "DETECT"
                     detect_start_time = None
+                    count_eating_medicine = 0
 
             ''' ---------- 顯示目前時間 ---------- '''
             cv2.putText(DrawUtil_img_bgr, f"{now}", (120, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 5)
