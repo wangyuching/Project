@@ -18,3 +18,6 @@ import time
 #     t.sleep(1)
 #     print(f"Elapsed time: {int(t.time() - start_time)} seconds")
 
+current_time = time.time()
+print(f"Time1: {(time.ctime(current_time))}")
+print(f"Time2: {(time.ctime(current_time + 1))}")
