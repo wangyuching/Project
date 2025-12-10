@@ -1,7 +1,14 @@
 import cv2
 import time as t
+import pygame
 
 Delay_second = 1.0
+
+pygame.mixer.init()
+try:
+    pygame.mixer.music.load("alarm3.mp3")
+except Exception as e:
+    print("Error loading alarm sound:", e)
 
 def timer(img_bgr, is_eating_medicine, 
            detect, alarm, detect_start_time, alarm_start_time, 
@@ -50,6 +57,7 @@ def timer(img_bgr, is_eating_medicine,
 
             ''' ---------- 狀態 4: 鬧鐘倒計時 ---------- '''
         elif current_timer_state == "ALARM":
+            pygame.mixer.music.play(0)
             if alarm_start_time is None:
                 alarm_start_time = current_time
 
@@ -59,6 +67,7 @@ def timer(img_bgr, is_eating_medicine,
             ''' ---------- 鬧鐘閃爍提示 ---------- '''
             if (current_time % 2.0) < 1.0:
                 cv2.putText(img_bgr, "!!! Eat Medicine !!!", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (0, 0, 255), 10)
+
 
             min, secs = divmod(remaining_time, 60)
             alarm_timer = '{:02d}:{:02d}'.format(min, secs)
@@ -71,10 +80,10 @@ def timer(img_bgr, is_eating_medicine,
                 wait_time = None
                 wait_time = current_time
                 current_timer_state = "WAIT_TO_DETECT"
-                last_second = -1
 
             ''' ---------- 狀態 5: 等待進入偵測倒計時 ---------- '''
         elif current_timer_state == "WAIT_TO_DETECT":
+            pygame.mixer.music.stop()
             cv2.putText(img_bgr, "Alarm:", (400, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
             cv2.putText(img_bgr, "00:00", (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
             elapsed_wait = current_time - wait_time
