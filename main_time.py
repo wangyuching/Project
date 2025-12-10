@@ -47,90 +47,86 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
             is_eating_medicine = True
             cv2.putText(DrawUtil_img_bgr, "Eat Meduicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
         
-        try:
-            ''' ---------- 計時 ---------- '''
-            current_time = t.time()
 
-            if is_eating_medicine:
+        ''' ---------- 計時 ---------- '''
+        current_time = t.time()
+
+        if is_eating_medicine:
+            detect_start_time = None
+            alert_start_time = None
+            wait_time = None
+            current_timer_state = "DETECT"
+
+            ''' ---------- 偵測計時 ---------- '''
+        elif current_timer_state == "DETECT":
+            if detect_start_time is None:
+                detect_start_time = current_time
+
+            elapsed_time = current_time - detect_start_time
+            remaining_time = max(0, detect - int(elapsed_time))
+
+            min, secs = divmod(remaining_time, 60)
+            detect_timer = '{:02d}:{:02d}'.format(min, secs)
+            cv2.putText(DrawUtil_img_bgr, "Detect:", (390, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
+            cv2.putText(DrawUtil_img_bgr, detect_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
+
+            if remaining_time == 0:
+                print("Detect Timer Finished", end='\n\n')
                 detect_start_time = None
+                wait_time = None
+                wait_time = current_time
+                current_timer_state = "WAIT_TO_ALERT"
+
+            ''' ---------- 等待1s, 警示計時 ---------- '''
+        elif current_timer_state == "WAIT_TO_ALERT":
+            cv2.putText(DrawUtil_img_bgr, "Detect:", (390, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
+            cv2.putText(DrawUtil_img_bgr, detect_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
+            elapsed_wait = current_time - wait_time
+            if elapsed_wait >= Delay_second:
+                print("Wait for Alert Timer", end='\n\n')
+                wait_time = None
+                alert_start_time = None
+                current_timer_state = "ALERT"
+
+            ''' ---------- 警示計時 ---------- '''
+        elif current_timer_state == "ALERT":
+            if alert_start_time is None:
+                alert_start_time = current_time
+
+            elapsed_time = current_time - alert_start_time
+            remaining_time = max(0, alert - int(elapsed_time))
+
+            min, secs = divmod(remaining_time, 60)
+            alert_timer = '{:02d}:{:02d}'.format(min, secs)
+            cv2.putText(DrawUtil_img_bgr, "Alert:", (423, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
+            cv2.putText(DrawUtil_img_bgr, alert_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
+
+            if remaining_time == 0:
+                print("Alert Timer Finished", end='\n\n')
                 alert_start_time = None
                 wait_time = None
+                wait_time = current_time
+                current_timer_state = "WAIT_TO_DETECT"
+
+            ''' ---------- 等待1s, 偵測計時 ---------- '''
+        elif current_timer_state == "WAIT_TO_DETECT":
+            cv2.putText(DrawUtil_img_bgr, "Alert:", (423, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
+            cv2.putText(DrawUtil_img_bgr, alert_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
+            elapsed_wait = current_time - wait_time
+            if elapsed_wait >= Delay_second:
+                print("Wait for Detect Timer", end='\n\n')
+                wait_time = None
+                detect_start_time = None
                 current_timer_state = "DETECT"
 
-                ''' ---------- 偵測計時 ---------- '''
-            elif current_timer_state == "DETECT":
-                if detect_start_time is None:
-                    detect_start_time = current_time
+        ''' ---------- 顯示目前時間 ---------- '''
+        cv2.putText(DrawUtil_img_bgr, f"{now}", (120, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 5)
 
-                elapsed_time = current_time - detect_start_time
-                remaining_time = max(0, detect - int(elapsed_time))
+        ''' ---------- 顯示畫面 ---------- '''
+        cv2.imshow("OOOOKKKK", DrawUtil_img_bgr)
 
-                min, secs = divmod(remaining_time, 60)
-                detect_timer = '{:02d}:{:02d}'.format(min, secs)
-                cv2.putText(DrawUtil_img_bgr, "Detect:", (390, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
-                cv2.putText(DrawUtil_img_bgr, detect_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
-
-                if remaining_time == 0:
-                    print("Detect Timer Finished", end='\n\n')
-                    detect_start_time = None
-                    wait_time = None
-                    wait_time = current_time
-                    current_timer_state = "WAIT_TO_ALERT"
-
-                ''' ---------- 等待1s, 警示計時 ---------- '''
-            elif current_timer_state == "WAIT_TO_ALERT":
-                cv2.putText(DrawUtil_img_bgr, "Detect:", (390, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
-                cv2.putText(DrawUtil_img_bgr, detect_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
-                elapsed_wait = current_time - wait_time
-                if elapsed_wait >= Delay_second:
-                    print("Wait for Alert Timer", end='\n\n')
-                    wait_time = None
-                    alert_start_time = None
-                    current_timer_state = "ALERT"
-
-                ''' ---------- 警示計時 ---------- '''
-            elif current_timer_state == "ALERT":
-                if alert_start_time is None:
-                    alert_start_time = current_time
-
-                elapsed_time = current_time - alert_start_time
-                remaining_time = max(0, alert - int(elapsed_time))
-
-                min, secs = divmod(remaining_time, 60)
-                alert_timer = '{:02d}:{:02d}'.format(min, secs)
-                cv2.putText(DrawUtil_img_bgr, "Alert:", (423, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
-                cv2.putText(DrawUtil_img_bgr, alert_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
-
-                if remaining_time == 0:
-                    print("Alert Timer Finished", end='\n\n')
-                    alert_start_time = None
-                    wait_time = None
-                    wait_time = current_time
-                    current_timer_state = "WAIT_TO_DETECT"
-
-                ''' ---------- 等待1s, 偵測計時 ---------- '''
-            elif current_timer_state == "WAIT_TO_DETECT":
-                cv2.putText(DrawUtil_img_bgr, "Alert:", (423, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
-                cv2.putText(DrawUtil_img_bgr, alert_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
-                elapsed_wait = current_time - wait_time
-                if elapsed_wait >= Delay_second:
-                    print("Wait for Detect Timer", end='\n\n')
-                    wait_time = None
-                    detect_start_time = None
-                    current_timer_state = "DETECT"
-
-            ''' ---------- 顯示目前時間 ---------- '''
-            cv2.putText(DrawUtil_img_bgr, f"{now}", (120, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 5)
-
-            ''' ---------- 顯示畫面 ---------- '''
-            cv2.imshow("OOOOKKKK", DrawUtil_img_bgr)
-
-            ''' ---------- 按 q 離開 ---------- '''
-            if cv2.waitKey(10) == ord('q'):
-                break
-
-        except Exception as e:
-            print("Error:", e)
+        ''' ---------- 按 q 離開 ---------- '''
+        if cv2.waitKey(10) == ord('q'):
             break
 
 cap.release()
