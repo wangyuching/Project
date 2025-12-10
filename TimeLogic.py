@@ -57,7 +57,12 @@ def timer(img_bgr, is_eating_medicine,
 
             ''' ---------- 狀態 4: 鬧鐘倒計時 ---------- '''
         elif current_timer_state == "ALARM":
-            pygame.mixer.music.play(0)
+            if not pygame.mixer.music.get_busy():
+                try:
+                    pygame.mixer.music.play(-1)
+                except Exception as e:
+                    print("Error playing alarm sound:", e)
+
             if alarm_start_time is None:
                 alarm_start_time = current_time
 
@@ -76,6 +81,7 @@ def timer(img_bgr, is_eating_medicine,
 
             if remaining_time == 0:
                 print("ALARM Timer Finished", end='\n\n')
+                pygame.mixer.music.stop()
                 alarm_start_time = None
                 wait_time = None
                 wait_time = current_time
