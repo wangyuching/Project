@@ -10,12 +10,11 @@ mp_pose = mp.solutions.pose
 w, h = 1000, 750
 cap = cv2.VideoCapture(0)
 
-detect, alarm = 2, 2
+detect, alarm = 5, 3
 detect_start_time = None
 alarm_start_time = None
 wait_time = None
 current_timer_state = "DETECT"
-last_second = -1
 
 with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as pose:
 
@@ -48,10 +47,10 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
             cv2.putText(img_bgr, "Eat Meduicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
         
         ''' ---------- 倒數計時器 ---------- '''
-        (detect_start_time, alarm_start_time, wait_time, current_timer_state, last_second) = TimeLogic.timer(
+        (detect_start_time, alarm_start_time, wait_time, current_timer_state) = TimeLogic.timer(
             img_bgr, is_eating_medicine, 
             detect, alarm, detect_start_time, alarm_start_time, 
-            wait_time, current_timer_state, last_second)
+            wait_time, current_timer_state)
 
         ''' ---------- 顯示目前時間 ---------- '''
         cv2.putText(img_bgr, f"{now}", (120, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 5)
