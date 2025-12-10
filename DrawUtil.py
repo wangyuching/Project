@@ -33,7 +33,7 @@ def frame(img_bgr, results, w, h):
 
     try:        
         if not results.pose_landmarks:
-            return img_bgr, left_elbow_angle, right_elbow_angle, left_distence, right_distence
+            return left_elbow_angle, right_elbow_angle, left_distence, right_distence
             
         landmarks = results.pose_landmarks.landmark
 
@@ -131,8 +131,8 @@ def frame(img_bgr, results, w, h):
             mp_drawing.DrawingSpec(color=(245, 66, 230), thickness=2, circle_radius=2)
         )
 
-        return img_bgr, left_elbow_angle, right_elbow_angle, left_distence, right_distence
+        return left_elbow_angle, right_elbow_angle, left_distence, right_distence
 
     except Exception as e:
         print("Error:", e)
-        return img_bgr, left_elbow_angle, right_elbow_angle, left_distence, right_distence
+        return left_elbow_angle, right_elbow_angle, left_distence, right_distence

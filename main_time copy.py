@@ -10,24 +10,24 @@ mp_pose = mp.solutions.pose
 w, h = 1000, 750
 cap = cv2.VideoCapture(0)
 
-detect, alert = 5, 3
+detect, alarm = 5, 3
 detect_start_time = None
-alert_start_time = None
+alarm_start_time = None
 wait_time = None
 Delay_second = 1.0
 current_timer_state = "DETECT"
 
-alert_sound_file = "alert.mp3"
+alarm_sound_file = "alarm.mp3"
 pygame.mixer.init()
 try:
-    pygame.mixer.music.load(alert_sound_file)
+    pygame.mixer.music.load(alarm_sound_file)
     print("音樂檔案載入成功")
     sound_loaded = True
 except pygame.error as e:
     print(f"載入音樂檔案失敗，請檢查檔案路徑和格式: {e}")
     sound_loaded = False
 
-is_alert_sound_playing = False
+is_alarm_sound_playing = False
 
 with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as pose:
 
@@ -42,7 +42,7 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
         img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
         results = pose.process(img_rgb)
 
-        (DrawUtil_img_bgr, 
+        (img_bgr, 
          left_elbow_angle, right_elbow_angle, 
          left_distence, right_distence) = DrawUtil.frame(img_bgr, results, w, h)
 
@@ -55,28 +55,28 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
         
         if left_elbow_angle < 50 and left_distence < 150 :
             is_eating_medicine = True
-            cv2.putText(DrawUtil_img_bgr, "Eat Meduicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
+            cv2.putText(img_bgr, "Eat Meduicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
         elif right_elbow_angle < 50 and right_distence < 150 :
             is_eating_medicine = True
-            cv2.putText(DrawUtil_img_bgr, "Eat Meduicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
+            cv2.putText(img_bgr, "Eat Meduicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
 
         ''' ---------- 計時 ---------- '''
         current_time = t.time()
 
         if is_eating_medicine:
-            if sound_loaded and is_alert_sound_playing:
+            if sound_loaded and is_alarm_sound_playing:
                 pygame.mixer.music.stop()
-                is_alert_sound_playing = False
+                is_alarm_sound_playing = False
             detect_start_time = None
-            alert_start_time = None
+            alarm_start_time = None
             wait_time = None
             current_timer_state = "DETECT"
 
             ''' ---------- 偵測計時 ---------- '''
         elif current_timer_state == "DETECT":
-            if sound_loaded and is_alert_sound_playing:
+            if sound_loaded and is_alarm_sound_playing:
                 pygame.mixer.music.stop()
-                is_alert_sound_playing = False
+                is_alarm_sound_playing = False
 
             if detect_start_time is None:
                 detect_start_time = current_time
@@ -86,63 +86,63 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
 
             min, secs = divmod(remaining_time, 60)
             detect_timer = '{:02d}:{:02d}'.format(min, secs)
-            cv2.putText(DrawUtil_img_bgr, "Detect:", (390, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
-            cv2.putText(DrawUtil_img_bgr, detect_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
+            cv2.putText(img_bgr, "Detect:", (390, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
+            cv2.putText(img_bgr, detect_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
 
             if remaining_time == 0:
                 print("Detect Timer Finished", end='\n\n')
                 detect_start_time = None
                 wait_time = None
                 wait_time = current_time
-                current_timer_state = "WAIT_TO_ALERT"
+                current_timer_state = "WAIT_TO_ALARM"
 
             ''' ---------- 等待1s, 警示計時 ---------- '''
-        elif current_timer_state == "WAIT_TO_ALERT":
-            if sound_loaded and is_alert_sound_playing:
+        elif current_timer_state == "WAIT_TO_ALARM":
+            if sound_loaded and is_alarm_sound_playing:
                 pygame.mixer.music.stop()
-                is_alert_sound_playing = False
+                is_alarm_sound_playing = False
 
-            cv2.putText(DrawUtil_img_bgr, "Detect:", (390, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
-            cv2.putText(DrawUtil_img_bgr, detect_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
+            cv2.putText(img_bgr, "Detect:", (390, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
+            cv2.putText(img_bgr, detect_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
             elapsed_wait = current_time - wait_time
             if elapsed_wait >= Delay_second:
-                print("Wait for Alert Timer", end='\n\n')
+                print("Wait for ALARM Timer", end='\n\n')
                 wait_time = None
-                alert_start_time = None
-                current_timer_state = "ALERT"
+                alarm_start_time = None
+                current_timer_state = "ALARM"
 
             ''' ---------- 警示計時 ---------- '''
-        elif current_timer_state == "ALERT":
-            if sound_loaded and not is_alert_sound_playing:
+        elif current_timer_state == "ALARM":
+            if sound_loaded and not is_alarm_sound_playing:
                 pygame.mixer.music.play(-1)
-                is_alert_sound_playing = True
+                is_alarm_sound_playing = True
 
-            if alert_start_time is None:
-                alert_start_time = current_time
+            if alarm_start_time is None:
+                alarm_start_time = current_time
 
-            elapsed_time = current_time - alert_start_time
-            remaining_time = max(0, alert - int(elapsed_time))
+            elapsed_time = current_time - alarm_start_time
+            remaining_time = max(0, alarm - int(elapsed_time))
 
             min, secs = divmod(remaining_time, 60)
-            alert_timer = '{:02d}:{:02d}'.format(min, secs)
-            cv2.putText(DrawUtil_img_bgr, "Alert:", (423, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
-            cv2.putText(DrawUtil_img_bgr, alert_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
+            alarm_timer = '{:02d}:{:02d}'.format(min, secs)
+            cv2.putText(img_bgr, "ALARM:", (423, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
+            cv2.putText(img_bgr, alarm_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
 
             if remaining_time == 0:
-                print("Alert Timer Finished", end='\n\n')
-                alert_start_time = None
+                print("ALARM Timer Finished", end='\n\n')
+                alarm_start_time = None
                 wait_time = None
                 wait_time = current_time
                 current_timer_state = "WAIT_TO_DETECT"
 
             ''' ---------- 等待1s, 偵測計時 ---------- '''
         elif current_timer_state == "WAIT_TO_DETECT":
-            if sound_loaded and is_alert_sound_playing:
+            if sound_loaded and is_alarm_sound_playing:
                 pygame.mixer.music.stop()
-                is_alert_sound_playing = False
+                is_alarm_sound_playing = False
 
-            cv2.putText(DrawUtil_img_bgr, "Alert:", (423, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
-            cv2.putText(DrawUtil_img_bgr, alert_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
+            cv2.putText(img_bgr, "ALARM:", (423, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
+            cv2.putText(img_bgr, alarm_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
             elapsed_wait = current_time - wait_time
             if elapsed_wait >= Delay_second:
                 print("Wait for Detect Timer", end='\n\n')
@@ -151,10 +151,10 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
                 current_timer_state = "DETECT"
 
         ''' ---------- 顯示目前時間 ---------- '''
-        cv2.putText(DrawUtil_img_bgr, f"{now}", (120, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 5)
+        cv2.putText(img_bgr, f"{now}", (120, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 5)
 
         ''' ---------- 顯示畫面 ---------- '''
-        cv2.imshow("OOOOKKKK", DrawUtil_img_bgr)
+        cv2.imshow("OOOOKKKK", img_bgr)
 
         ''' ---------- 按 q 離開 ---------- '''
         if cv2.waitKey(10) == ord('q'):
