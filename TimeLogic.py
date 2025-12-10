@@ -55,7 +55,8 @@ def timer(img_bgr, is_eating_medicine,
 
             elapsed_time = current_time - alarm_start_time
             remaining_time = max(0, alarm - int(elapsed_time))
-
+            
+            ''' ---------- 鬧鐘閃爍提示 ---------- '''
             if (current_time % 2.0) < 1.0:
                 cv2.putText(img_bgr, "!!! Eat Medicine !!!", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (0, 0, 255), 10)
 
