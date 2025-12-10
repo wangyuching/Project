@@ -10,7 +10,7 @@ mp_pose = mp.solutions.pose
 w, h = 1000, 750
 cap = cv2.VideoCapture(0)
 
-detect, alarm = 5, 3
+detect, alarm = 2, 2
 detect_start_time = None
 alarm_start_time = None
 wait_time = None
