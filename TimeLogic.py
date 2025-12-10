@@ -17,14 +17,14 @@ def timer(img_bgr, is_eating_medicine,
         ''' ---------- 取得目前時間戳 ---------- '''
         current_time = t.time()
 
-        ''' ---------- 狀態 1: 判斷有無吃藥動作 ---------- '''
+        ''' ---------- 狀態 0: 判斷有無吃藥動作 ---------- '''
         if is_eating_medicine:
             detect_start_time = None
             alarm_start_time = None
             wait_time = None
             current_timer_state = "DETECT"
 
-            ''' ---------- 狀態 2: 偵測動作倒計時: ---------- '''
+            ''' ---------- 狀態 1: 偵測動作倒計時: ---------- '''
         elif current_timer_state == "DETECT":
             if detect_start_time is None:
                 detect_start_time = current_time
@@ -44,7 +44,7 @@ def timer(img_bgr, is_eating_medicine,
                 wait_time = current_time
                 current_timer_state = "WAIT_TO_ALARM"
 
-            ''' ---------- 狀態 3: 等待進入鬧鐘倒計時 ---------- '''
+            ''' ---------- 狀態 2: 等待進入鬧鐘倒計時 ---------- '''
         elif current_timer_state == "WAIT_TO_ALARM":
             cv2.putText(img_bgr, "Detect:", (390, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
             cv2.putText(img_bgr, "00:00", (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
@@ -55,7 +55,7 @@ def timer(img_bgr, is_eating_medicine,
                 alarm_start_time = None
                 current_timer_state = "ALARM"
 
-            ''' ---------- 狀態 4: 鬧鐘倒計時 ---------- '''
+            ''' ---------- 狀態 3: 鬧鐘倒計時 ---------- '''
         elif current_timer_state == "ALARM":
             if not pygame.mixer.music.get_busy():
                 try:
@@ -73,7 +73,6 @@ def timer(img_bgr, is_eating_medicine,
             if (current_time % 2.0) < 1.0:
                 cv2.putText(img_bgr, "!!! Eat Medicine !!!", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (0, 0, 255), 10)
 
-
             min, secs = divmod(remaining_time, 60)
             alarm_timer = '{:02d}:{:02d}'.format(min, secs)
             cv2.putText(img_bgr, "Alarm:", (400, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
@@ -87,9 +86,8 @@ def timer(img_bgr, is_eating_medicine,
                 wait_time = current_time
                 current_timer_state = "WAIT_TO_DETECT"
 
-            ''' ---------- 狀態 5: 等待進入偵測倒計時 ---------- '''
+            ''' ---------- 狀態 4: 等待進入偵測倒計時 ---------- '''
         elif current_timer_state == "WAIT_TO_DETECT":
-            pygame.mixer.music.stop()
             cv2.putText(img_bgr, "Alarm:", (400, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
             cv2.putText(img_bgr, "00:00", (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
             elapsed_wait = current_time - wait_time
