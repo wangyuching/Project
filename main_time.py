@@ -3,13 +3,6 @@ import mediapipe as mp
 import time as t
 import DrawUtil
 import TimeLogic
-import pygame
-
-pygame.mixer.init()
-try:
-    pygame.mixer.music.load("alarm3.mp3")
-except Exception as e:
-    print("Error loading alarm sound:", e)
 
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
