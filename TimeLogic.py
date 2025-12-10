@@ -5,10 +5,8 @@ Delay_second = 1.0
 
 def timer(img_bgr, is_eating_medicine, 
            detect, alarm, detect_start_time, alarm_start_time, 
-           wait_time, current_timer_state):
+           wait_time, current_timer_state, last_second):
     try:
-        
-
         ''' ---------- 取得目前時間戳 ---------- '''
         current_time = t.time()
 
@@ -18,6 +16,7 @@ def timer(img_bgr, is_eating_medicine,
             alarm_start_time = None
             wait_time = None
             current_timer_state = "DETECT"
+            last_second = -1
 
             ''' ---------- 狀態 2: 偵測動作倒計時: ---------- '''
         elif current_timer_state == "DETECT":
@@ -54,14 +53,19 @@ def timer(img_bgr, is_eating_medicine,
         elif current_timer_state == "ALARM":
             if alarm_start_time is None:
                 alarm_start_time = current_time
+                last_second = alarm + 1
 
             elapsed_time = current_time - alarm_start_time
             remaining_time = max(0, alarm - int(elapsed_time))
 
+            if int(remaining_time) < last_second:
+                last_second = int(remaining_time)
+                cv2.putText(img_bgr, "!!! Eat Medicine !!!", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (0, 0, 255), 10)
+
             min, secs = divmod(remaining_time, 60)
             alarm_timer = '{:02d}:{:02d}'.format(min, secs)
             cv2.putText(img_bgr, "Alarm:", (400, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
-            cv2.putText(img_bgr, alarm_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)
+            cv2.putText(img_bgr, alarm_timer, (430, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4)            
 
             if remaining_time == 0:
                 print("ALARM Timer Finished", end='\n\n')
@@ -69,6 +73,7 @@ def timer(img_bgr, is_eating_medicine,
                 wait_time = None
                 wait_time = current_time
                 current_timer_state = "WAIT_TO_DETECT"
+                last_second = -1
 
             ''' ---------- 狀態 5: 等待進入偵測倒計時 ---------- '''
         elif current_timer_state == "WAIT_TO_DETECT":
@@ -81,8 +86,8 @@ def timer(img_bgr, is_eating_medicine,
                 detect_start_time = None
                 current_timer_state = "DETECT"
 
-        return detect_start_time, alarm_start_time, wait_time, current_timer_state
+        return detect_start_time, alarm_start_time, wait_time, current_timer_state, last_second
     
     except Exception as e:
         print("Error in Timer:", e)
-        return detect_start_time, alarm_start_time, wait_time, current_timer_state
+        return detect_start_time, alarm_start_time, wait_time, current_timer_state, last_second

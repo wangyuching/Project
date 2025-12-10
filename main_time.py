@@ -15,6 +15,7 @@ detect_start_time = None
 alarm_start_time = None
 wait_time = None
 current_timer_state = "DETECT"
+last_second = -1
 
 with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as pose:
 
@@ -41,16 +42,16 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
         
         if left_elbow_angle < 50 and left_distence < 150 :
             is_eating_medicine = True
-            cv2.putText(img_bgr, "Eat Meduicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
+            cv2.putText(img_bgr, "Eat Medicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
         elif right_elbow_angle < 50 and right_distence < 150 :
             is_eating_medicine = True
             cv2.putText(img_bgr, "Eat Meduicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
         
         ''' ---------- 倒數計時器 ---------- '''
-        (detect_start_time, alarm_start_time, wait_time, current_timer_state) = TimeLogic.timer(
+        (detect_start_time, alarm_start_time, wait_time, current_timer_state, last_second) = TimeLogic.timer(
             img_bgr, is_eating_medicine, 
             detect, alarm, detect_start_time, alarm_start_time, 
-            wait_time, current_timer_state)
+            wait_time, current_timer_state, last_second)
 
         ''' ---------- 顯示目前時間 ---------- '''
         cv2.putText(img_bgr, f"{now}", (120, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 5)
