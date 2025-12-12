@@ -16,5 +16,5 @@ count += 1
         count == 0
         break to 定時
     在 10s 內無動作：
-'''
         break
+'''
