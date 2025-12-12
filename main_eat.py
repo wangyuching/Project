@@ -43,11 +43,8 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
         is_eating_medicine = False
 
         if left_elbow_angle < 50 and left_distence < 150 :
+            is_eating_medicine = True right_distence < 150 :
             is_eating_medicine = True
-            cv2.putText(img_bgr, "Eat Medicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
-        elif right_elbow_angle < 50 and right_distence < 150 :
-            is_eating_medicine = True
-            cv2.putText(img_bgr, "Eat Meduicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
 
         ''' ---------- 倒數計時器 ---------- '''
         (detect_start_time, alarm_start_time, wait_time, current_timer_state) = TimeLogic.timer(
