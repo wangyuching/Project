@@ -15,7 +15,7 @@ def calculate_angle_3d(a, b, c):
     > 轉成角度(degress)
     """
     # 向量
-    v1 = b - a
+    v1 = a - b
     v2 = c - b
 
     # 點積(內積) / 範數(向量長度)
@@ -27,11 +27,9 @@ def calculate_angle_3d(a, b, c):
     # 計算餘弦值並剪裁範圍防止浮點數溢位
     cos_thata = np.clip(np.dot(v1, v2) / denom, -1.0, 1.0)
 
-    raw_angle = np.degrees(np.arccos(cos_thata))
+    angle = np.degrees(np.arccos(cos_thata))
 
-    real_angle = 180 - raw_angle
-
-    return real_angle
+    return angle
 
 def get_world_coords(landmark):
     return np.array([landmark.x , landmark.y , landmark.z ])
@@ -47,7 +45,7 @@ def frame(img_bgr, results, w, h):
 
     try:        
         if not results.pose_world_landmarks:
-            return left_elbow_angle, right_elbow_angle, left_m_distence, right_m_distence
+            return 0, 0, 0, 0
             
         world_landmarks = results.pose_world_landmarks.landmark
         canvas_landmarks = results.pose_landmarks.landmark
@@ -78,9 +76,8 @@ def frame(img_bgr, results, w, h):
         cv2.putText(img_bgr, f"Left Elbow: {int(left_elbow_angle)} deg",
                     (660, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
 
-        """ ---------- 3D 左手部中心點 與 嘴角二點中心點的距離 ---------- """
-        left_hand_center_w = np.mean([p15_w, p17_w, p19_w, p21_w], axis=0)
-        left_m_distence = np.linalg.norm(left_hand_center_w - mouth_center_w)
+        """ ---------- 3D 左手腕點 與 嘴角二點中心點的距離 ---------- """
+        left_m_distence = np.linalg.norm(p15_w - mouth_center_w)
 
         ''' ---------- 2D 顯示, 3D 數值. 嘴角二點中心點的距離 ---------- '''
         cv2.putText(img_bgr, f"L- M Dist: {left_m_distence*100:.0f} cm", (660, 100), 
@@ -99,15 +96,14 @@ def frame(img_bgr, results, w, h):
         
         ''' ---------- 2D 顯示, 3D 數值. 右手肘角度 ---------- '''
         cv2.putText(img_bgr, f"Right Elbow: {int(right_elbow_angle)} deg",
-                    (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 255), 2)
+                    (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
 
-        """ ---------- 3D 右手部中心點 與 嘴角二點中心點的距離 ---------- """
-        right_hand_center_w = np.mean([p16_w, p18_w, p20_w, p22_w], axis=0)
-        right_m_distence = np.linalg.norm(right_hand_center_w - mouth_center_w)
+        """ ---------- 3D 右手腕 與 嘴角二點中心點的距離 ---------- """
+        right_m_distence = np.linalg.norm(p16_w - mouth_center_w)
         
         ''' ---------- 2D 顯示, 3D 數值. 嘴角二點中心點的距離 ---------- '''
         cv2.putText(img_bgr, f"R- M Dist: {right_m_distence*100:.0f} cm", (30, 100), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 255), 2)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
 
         ''' ---------- 畫 Pose's landmarks ---------- '''
         mp_drawing.draw_landmarks(
@@ -122,4 +118,4 @@ def frame(img_bgr, results, w, h):
 
     except Exception as e:
         print("Error:", e)
-        return left_elbow_angle, right_elbow_angle, left_m_distence, right_m_distence
+        return 0, 0, 0, 0
