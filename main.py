@@ -34,20 +34,23 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
         format_time = t.strftime("%Y-%m-%d %A %H:%M:%S", current_time)
         now = format_time
         cv2.putText(img_bgr, f"{now}", (120, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 5)
-
-        ''' ---------- 螢幕顯示動作姿勢 ---------- '''
-        (left_elbow_angle, right_elbow_angle, 
-         left_m_distence, right_m_distence) = DrawUtil.frame(img_bgr, results, w, h)
-
-        ''' ---------- 判斷有無吃藥動作 ---------- '''
+        
+        left_elbow_angle, right_elbow_angle = 180, 180
+        left_m_distence, right_m_distence = 1.0, 1.0
         is_eating_medicine = False
 
-        if left_elbow_angle < 70 and (left_m_distence*100) < 20 :
-            is_eating_medicine = True
-            cv2.putText(img_bgr, "Eat Medicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
-        elif right_elbow_angle < 70 and (right_m_distence*100) < 20 :
-            is_eating_medicine = True
-            cv2.putText(img_bgr, "Eat Medicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
+        if results.pose_landmarks:
+            ''' ---------- 螢幕顯示動作姿勢 ---------- '''
+            (left_elbow_angle, right_elbow_angle, 
+            left_m_distence, right_m_distence) = DrawUtil.frame(img_bgr, results, w, h)
+
+            ''' ---------- 判斷有無吃藥動作 ---------- '''
+            if (left_elbow_angle < 70 and (left_m_distence*100) < 20) or \
+               (right_elbow_angle < 70 and (right_m_distence*100) < 20):
+                is_eating_medicine = True
+                cv2.putText(img_bgr, "Eat Medicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
+        else:
+            cv2.putText(img_bgr, "No Person Detected", (30, 350), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 5)
 
         # ''' ---------- 倒數計時器 ---------- '''
         # (detect_start_time, alarm_start_time, wait_time, current_timer_state) = TimeLogic.timer(
