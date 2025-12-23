@@ -37,23 +37,23 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
 
         ''' ---------- 螢幕顯示動作姿勢 ---------- '''
         (left_elbow_angle, right_elbow_angle, 
-         left_distence, right_distence) = DrawUtil.frame(img_bgr, results, w, h)
+         left_m_distence, right_m_distence) = DrawUtil.frame(img_bgr, results, w, h)
 
         ''' ---------- 判斷有無吃藥動作 ---------- '''
         is_eating_medicine = False
 
-        if left_elbow_angle < 50 and left_distence < 150 :
+        if left_elbow_angle < 50 and left_m_distence < 150 :
             is_eating_medicine = True
             cv2.putText(img_bgr, "Eat Medicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
-        elif right_elbow_angle < 50 and right_distence < 150 :
+        elif right_elbow_angle < 50 and right_m_distence < 150 :
             is_eating_medicine = True
             cv2.putText(img_bgr, "Eat Medicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
 
-        ''' ---------- 倒數計時器 ---------- '''
-        (detect_start_time, alarm_start_time, wait_time, current_timer_state) = TimeLogic.timer(
-            img_bgr, is_eating_medicine, 
-            detect, alarm, detect_start_time, alarm_start_time, 
-            wait_time, current_timer_state)        
+        # ''' ---------- 倒數計時器 ---------- '''
+        # (detect_start_time, alarm_start_time, wait_time, current_timer_state) = TimeLogic.timer(
+        #     img_bgr, is_eating_medicine, 
+        #     detect, alarm, detect_start_time, alarm_start_time, 
+        #     wait_time, current_timer_state)        
 
         ''' ---------- 顯示畫面 ---------- '''
         cv2.imshow("OOOOKKKK", img_bgr)
