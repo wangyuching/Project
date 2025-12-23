@@ -7,18 +7,31 @@ mp_pose = mp.solutions.pose
 
 def calculate_angle_3d(a, b, c):
     """
-    計算三點 a-b-c 的夾角（以 b 為頂點）
-    a, b, c: numpy array 座標
-    回傳角度 (degree)
+    計算肩膀(a) -> 手肘(b) -> 手腕(c) 的連貫向量夾角
+    a: 肩膀, b: 手肘, c: 手腕
+    夾角公式:
+    > 點積(內積) / 範數(向量長度)
+    > 反餘弦(acos) 
+    > 轉成角度(degress)
     """
-    ba = a - b
-    bc = c - b
+    # 向量
+    v1 = b - a
+    v2 = c - b
 
-    cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
-    cosine_angle = np.clip(cosine_angle, -1.0, 1.0)
+    # 點積(內積) / 範數(向量長度)
+    denom = np.linalg.norm(v1) * np.linalg.norm(v2)
+    # 避免除以零的情況
+    if denom == 0:
+        return 180.0  
+    
+    # 計算餘弦值並剪裁範圍防止浮點數溢位
+    cos_thata = np.clip(np.dot(v1, v2) / denom, -1.0, 1.0)
 
-    angle = np.degrees(np.arccos(cosine_angle))
-    return angle
+    raw_angle = np.degrees(np.arccos(cos_thata))
+
+    real_angle = 180 - raw_angle
+
+    return real_angle
 
 def get_world_coords(landmark):
     return np.array([landmark.x , landmark.y , landmark.z ])
