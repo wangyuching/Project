@@ -10,7 +10,7 @@ mp_pose = mp.solutions.pose
 w, h = 1000, 750
 cap = cv2.VideoCapture(0)
 
-detect, alarm = 5, 3
+detect, alarm = 10, 3
 detect_start_time = None
 alarm_start_time = None
 wait_time = None
@@ -47,7 +47,7 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
             cv2.putText(img_bgr, "Eat Medicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
         elif right_elbow_angle < 50 and right_distence < 150 :
             is_eating_medicine = True
-            cv2.putText(img_bgr, "Eat Meduicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
+            cv2.putText(img_bgr, "Eat Medicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
 
         ''' ---------- 倒數計時器 ---------- '''
         (detect_start_time, alarm_start_time, wait_time, current_timer_state) = TimeLogic.timer(
