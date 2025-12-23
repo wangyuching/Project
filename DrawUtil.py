@@ -32,7 +32,7 @@ def calculate_angle_3d(a, b, c):
     return angle
 
 def get_world_coords(landmark):
-    return np.array([landmark.x , landmark.y , landmark.z ])
+    return np.array([landmark.x , landmark.y , landmark.z ]) * 100
 
 def get_canvas_coords(landmark, w, h):
     return int(landmark.x * w), int(landmark.y * h)
@@ -45,10 +45,14 @@ def frame(img_bgr, results, w, h):
 
     try:        
         if not results.pose_world_landmarks:
-            return 180, 180, 1, 1
+            return 180, 180, 1, 1, 1
             
         world_landmarks = results.pose_world_landmarks.landmark
         canvas_landmarks = results.pose_landmarks.landmark
+
+        p11_w = get_world_coords(world_landmarks[11]) #左肩
+        p12_w = get_world_coords(world_landmarks[12]) #右肩
+        shoulder_width = np.linalg.norm(p11_w - p12_w)
 
         p9_w = get_world_coords(world_landmarks[9])   #嘴左角
         p10_w = get_world_coords(world_landmarks[10]) #嘴右角
@@ -81,7 +85,7 @@ def frame(img_bgr, results, w, h):
         left_m_distence = np.linalg.norm(left_hand_center_w - mouth_center_w)
 
         ''' ---------- 2D 顯示, 3D 數值. 嘴角二點中心點的距離 ---------- '''
-        cv2.putText(img_bgr, f"L- M Dist: {left_m_distence*100:.0f} cm", (660, 100), 
+        cv2.putText(img_bgr, f"L- M Dist: {left_m_distence:.0f} cm", (660, 100), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
 
 
@@ -104,7 +108,7 @@ def frame(img_bgr, results, w, h):
         right_m_distence = np.linalg.norm(right_hand_center_w - mouth_center_w)
         
         ''' ---------- 2D 顯示, 3D 數值. 嘴角二點中心點的距離 ---------- '''
-        cv2.putText(img_bgr, f"R- M Dist: {right_m_distence*100:.0f} cm", (30, 100), 
+        cv2.putText(img_bgr, f"R- M Dist: {right_m_distence:.0f} cm", (30, 100), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
 
         ''' ---------- 畫 Pose's landmarks ---------- '''
@@ -116,8 +120,8 @@ def frame(img_bgr, results, w, h):
             mp_drawing.DrawingSpec(color=(245, 66, 230), thickness=2, circle_radius=2)
         )
 
-        return left_elbow_angle, right_elbow_angle, left_m_distence, right_m_distence
+        return left_elbow_angle, right_elbow_angle, left_m_distence, right_m_distence, shoulder_width
 
     except Exception as e:
         print("Error:", e)
-        return 0, 0, 0, 0
+        return 180, 180, 1.0, 1.0, 1.0

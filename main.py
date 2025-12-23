@@ -42,11 +42,14 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
         if results.pose_landmarks:
             ''' ---------- 螢幕顯示動作姿勢 ---------- '''
             (left_elbow_angle, right_elbow_angle, 
-            left_m_distence, right_m_distence) = DrawUtil.frame(img_bgr, results, w, h)
+            left_m_distence, right_m_distence, shoulder_width) = DrawUtil.frame(img_bgr, results, w, h)
+
+            l_ratio = left_m_distence / shoulder_width
+            r_ratio = right_m_distence / shoulder_width
 
             ''' ---------- 判斷有無吃藥動作 ---------- '''
-            if (left_elbow_angle < 70 and (left_m_distence*100) < 20) or \
-               (right_elbow_angle < 70 and (right_m_distence*100) < 20):
+            if (left_elbow_angle < 100 and l_ratio < 0.6) or \
+               (right_elbow_angle < 100 and r_ratio < 0.6):
                 is_eating_medicine = True
                 cv2.putText(img_bgr, "Eat Medicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
         else:
