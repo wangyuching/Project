@@ -52,14 +52,15 @@ with mp_pose.Pose(min_detection_confidence=0.5,min_tracking_confidence=0.5) as p
                (right_elbow_angle < 100 and r_ratio < 0.6):
                 is_eating_medicine = True
                 cv2.putText(img_bgr, "Eat Medicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
+
+            ''' ---------- 倒數計時器 ---------- '''
+            (detect_start_time, alarm_start_time, wait_time, current_timer_state) = TimeLogic.timer(
+            img_bgr, is_eating_medicine, 
+            detect, alarm, detect_start_time, alarm_start_time, 
+            wait_time, current_timer_state)
+            
         else:
             cv2.putText(img_bgr, "No Person Detected", (30, 350), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 5)
-
-        # ''' ---------- 倒數計時器 ---------- '''
-        # (detect_start_time, alarm_start_time, wait_time, current_timer_state) = TimeLogic.timer(
-        #     img_bgr, is_eating_medicine, 
-        #     detect, alarm, detect_start_time, alarm_start_time, 
-        #     wait_time, current_timer_state)        
 
         ''' ---------- 顯示畫面 ---------- '''
         cv2.imshow("OOOOKKKK", img_bgr)
