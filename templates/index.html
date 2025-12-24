@@ -25,6 +25,11 @@
         <div class="col-lg-offset-2 col-lg-8">
             <center>
                 <img src="{{ url_for('cap_in_html') }}" width="700px" height="500px">
+                <script>
+                    window.addEventListener('beforeunload', function (e) {
+                        navigator.sendBeacon('/stop');
+                    });
+                </script>
             </center>
         </div>
     </div>
