@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cap To Html Test</title>
+</head>
+
+<body>
+    <div class="container">
+        <div class="col-lg-offset-2 col-lg-8">
+            <center>
+                <form class="form-inline" action="/start" method="post" enctype="multipart/form-data">
+                    <input type="submit" class="btn btn-success btn-md btn-block" value="Start">
+                </form>
+            </center>
+            <center>
+                <form class="form-inline" action="/stop" method="post" enctype="multipart/form-data">
+                    <input type="submit" class="btn btn-danger btn-md btn-block" value="Stop">
+                </form>
+            </center>
+            <br>
+        </div>
+        <div class="col-lg-offset-2 col-lg-8">
+            <center>
+                <img src="{{ url_for('cap_in_html') }}" width="700px" height="500px">
+            </center>
+        </div>
+    </div>
+</body>
+
+</html>
