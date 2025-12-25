@@ -1,6 +1,8 @@
 from flask import Flask, render_template, Response
 import cv2
 import mediapipe as mp
+import os
+import signal
 
 app = Flask(__name__)
 
@@ -25,12 +27,6 @@ def cap_real_time():
         ret, img = cap.read()
         if not ret:
             break
-
-        # h, w, _ = img.shape
-        # target_w = int(h * 0.75)
-        # start_x = (w - target_w) // 2
-        # end_x = start_x + target_w
-        # img = img[:, start_x:end_x]
 
         img = cv2.flip(img, 1)
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
