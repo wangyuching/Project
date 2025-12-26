@@ -15,13 +15,12 @@ pose = mp_pose.Pose(
         min_detection_confidence=0.5,
         min_tracking_confidence=0.5)
 
-def show_landmarks(img, pose):
+def show_landmarks(img, pose, w, h):
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img_rgb.flags.writeable = False            
     results = pose.process(img_rgb)
     img.flags.writeable = True
-    
-    height, width, _ = img.shape
+
     landmarks = []
     if results.pose_landmarks:
         mp_drawing.draw_landmarks(
@@ -32,7 +31,7 @@ def show_landmarks(img, pose):
             # mp_drawing.DrawingSpec(color=(245, 66, 230), thickness=2, circle_radius=2)
         )
         for landmark in results.pose_landmarks.landmark:
-            landmarks.append(np.array([landmark.x * width, landmark.y * height, landmark.z]))
+            landmarks.append(np.array([landmark.x * w, landmark.y * h, landmark.z]))
     return img, landmarks
 
 def calculate_angle(a, b, c):
@@ -50,32 +49,31 @@ def calculate_angle(a, b, c):
     angle = np.degrees(np.arccos(cosine_angle))
     return angle
 
-def detect_pose(img, landmarks, w, h):
+def detect_pose(img, landmarks):
 
     left_elbow_angle = 0
     right_elbow_angle = 0
     left_distence = 0
     right_distence = 0
 
-
     ''' ---------- 嘴部landmark 嘴左角[9]-嘴右角[10] ---------- '''
-    p9 = (landmarks[9], w, h)   #嘴左角
-    p10 = (landmarks[10], w, h) #嘴右角
+    p9 = landmarks[9]   #嘴左角
+    p10 = landmarks[10] #嘴右角
 
     ''' ---------- 計算嘴角二點中心點 ---------- '''
-    mouth_center_point = (p9 + p10) / 2
+    mouth_center_point = (landmarks[9] + landmarks[10]) / 2
 
     ''' ---------- 顯示嘴角二點中心點 ---------- '''
     cv2.circle(img, (int(mouth_center_point[0]), int(mouth_center_point[1])), 8, (0, 255, 0), -1)
 
 
     ''' ---------- 左手部landmark 左肩[11]-左肘[13]-左腕[15], 左腕[15]-左小指[17]-左食指[19]-左姆指[21] ---------- '''
-    p11 = (landmarks[11], w, h) #左肩
-    p13 = (landmarks[13], w, h) #左肘
-    p15 = (landmarks[15], w, h) #左腕
-    p17 = (landmarks[17], w, h) #左小指
-    p19 = (landmarks[19], w, h) #左食指
-    p21 = (landmarks[21], w, h) #左姆指
+    p11 = landmarks[11] #左肩
+    p13 = landmarks[13] #左肘
+    p15 = landmarks[15] #左腕
+    p17 = landmarks[17] #左小指
+    p19 = landmarks[19] #左食指
+    p21 = landmarks[21] #左姆指
 
     ''' ---------- 計算左手肘角度 ---------- '''
     left_elbow_angle = calculate_angle(p11, p13, p15)
@@ -107,12 +105,12 @@ def detect_pose(img, landmarks, w, h):
 
 
     ''' ---------- 右手部landmark 右肩[12]-右肘[14]-右腕[16], 右腕[16]-右小指[18]-右食指[20]-右姆指[22] ---------- '''
-    p12 = (landmarks[12], w, h) #右肩
-    p14 = (landmarks[14], w, h) #右肘
-    p16 = (landmarks[16], w, h) #右腕
-    p18 = (landmarks[18], w, h) #右小指
-    p20 = (landmarks[20], w, h) #右食指
-    p22 = (landmarks[22], w, h) #右姆指
+    p12 = landmarks[12] #右肩
+    p14 = landmarks[14] #右肘
+    p16 = landmarks[16] #右腕
+    p18 = landmarks[18] #右小指
+    p20 = landmarks[20] #右食指
+    p22 = landmarks[22] #右姆指
 
     ''' ---------- 計算右手肘角度 ---------- '''
     right_elbow_angle = calculate_angle(p12, p14, p16)
@@ -166,11 +164,22 @@ def cap_real_time():
         cv2.putText(img, f"{now}", (115, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
 
         # ''' ---------- 顯示pose landmarks ---------- '''
-        img, landmarks = show_landmarks(img, pose)
+        img, landmarks = show_landmarks(img, pose, w, h)
 
         # ''' ---------- 螢幕顯示動作姿勢 ---------- '''
         if landmarks:
-            img = detect_pose(img, landmarks, w, h)
+            left_elbow_angle, right_elbow_angle, left_distence, right_distence = detect_pose(img, landmarks)
+
+            # ''' ---------- 判斷有無吃藥動作 ---------- '''
+        is_eating_medicine = False
+
+        if left_elbow_angle < 50 and left_distence < 150 :
+            is_eating_medicine = True
+            cv2.putText(img, "Eat Medicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
+        elif right_elbow_angle < 50 and right_distence < 150 :
+            is_eating_medicine = True
+            cv2.putText(img, "Eat Meduicine", (50, 350), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 0, 0), 10)
+
 
         ret, buffer = cv2.imencode('.jpg', img)
         frame = buffer.tobytes()
@@ -181,21 +190,10 @@ def cap_real_time():
 def index():
     return render_template('index.html')
 
-@app.route('/start', methods=['POST'])
-def start():
-    return render_template('index.html')
-
 @app.route('/stop',methods=['POST'])
 def stop():
     global cap
     if cap is not None and 'cap' in globals():
         if cap.isOpened():
             cap.release()
-    return render_template('stop.html')
-
-@app.route('/cap_in_html')
-def cap_in_html():
-    return Response(cap_real_time(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=7337)
+    return render_template('index.html')
