@@ -2,137 +2,99 @@ import cv2
 import mediapipe as mp
 import numpy as np
 
-mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
+pose = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.5, model_complexity=1)
+mp_drawing = mp.solutions.drawing_utils 
 
-def calculate_angle(a, b, c):
-    """
-    計算三點 a-b-c 的夾角（以 b 為頂點）
-    a, b, c: numpy array 座標
-    回傳角度 (degree)
-    """
+def show_landmarks(image, pose):
+    output_image = image.copy()
+    imageRGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    imageRGB.flags.writeable = False 
+    results = pose.process(imageRGB)
+    imageRGB.flags.writeable = True
+    height, width, _ = image.shape
+    landmarks = []
+    if results.pose_landmarks:
+        mp_drawing.draw_landmarks(image=output_image, landmark_list=results.pose_landmarks,
+                                  connections=mp_pose.POSE_CONNECTIONS)
+        for landmark in results.pose_landmarks.landmark:
+            landmarks.append(np.array([int(landmark.x * width), 
+                                       int(landmark.y * height)
+                                    #    int(landmark.z * width)
+                                       ]))
+        # landmarks = np.array(landmarks)
+    else:
+        landmarks = np.array([])
+    return output_image, landmarks
+
+def calculate_angle(landmark1, landmark2, landmark3):
+
+    a = landmark1[:2]
+    b = landmark2[:2]
+    c = landmark3[:2]
+
     ba = a - b
     bc = c - b
 
     cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
-    cosine_angle = np.clip(cosine_angle, -1.0, 1.0)
+    angle = np.degrees(np.arccos(np.clip(cosine_angle, -1.0, 1.0)))
 
-    angle = np.degrees(np.arccos(cosine_angle))
     return angle
 
-''' ------ 座標轉換 (將正規化座標 [0, 1] 轉換為實際像素座標 [0*w, 1*h]) ------ '''
-def get_coords(landmark, w, h):
-    return np.array([landmark.x * w, landmark.y * h])
+def detectPose(output_image, landmarks):
+    try:
 
-def frame(img_bgr, results, w, h):
+        # 兩嘴角中心點:嘴角左[9]、嘴角右[10]
+        mouth_center = (landmarks[mp_pose.PoseLandmark.MOUTH_LEFT.value] + landmarks[mp_pose.PoseLandmark.MOUTH_RIGHT.value]) / 2
+        cv2.circle(output_image, (int(mouth_center[0]), int(mouth_center[1])), 8, (0, 255, 0), -1)
 
-    left_elbow_angle = 0
-    right_elbow_angle = 0
-    left_distence = 0
-    right_distence = 0
+        # 左手肘角度:左肩[11]、左肘[13]、左腕[15]
+        left_elbow_angle = calculate_angle(landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value], 
+                                           landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value], 
+                                           landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value])
 
-    try:        
-        if not results.pose_landmarks:
-            return left_elbow_angle, right_elbow_angle, left_distence, right_distence
-            
-        landmarks = results.pose_landmarks.landmark
+        # 右手肘角度:右肩[12]、右肘[14]、右腕[16]
+        right_elbow_angle = calculate_angle(landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value], 
+                                           landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value], 
+                                           landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value])
 
-        ''' ---------- 嘴部landmark 嘴左角[9]-嘴右角[10] ---------- '''
-        p9 = get_coords(landmarks[9], w, h)   #嘴左角
-        p10 = get_coords(landmarks[10], w, h) #嘴右角
+        # 左手中心點:左腕[15]、左小指[17]、左食指[19]、左姆指[21]
+        left_hand_center = np.array([landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value],
+                                     landmarks[mp_pose.PoseLandmark.LEFT_PINKY.value],
+                                     landmarks[mp_pose.PoseLandmark.LEFT_INDEX.value],
+                                     landmarks[mp_pose.PoseLandmark.LEFT_THUMB.value]]).mean(axis=0)
+        cv2.circle(output_image, (int(left_hand_center[0]), int(left_hand_center[1])), 8, (0, 0, 255), -1)
 
-        ''' ---------- 計算嘴角二點中心點 ---------- '''
-        mouth_center_point = (p9 + p10) / 2
+        # 計算左手中心點與嘴中心點距離
+        l_2_m_distance = np.linalg.norm(left_hand_center - mouth_center)
 
-        ''' ---------- 顯示嘴角二點中心點 ---------- '''
-        cv2.circle(img_bgr, (int(mouth_center_point[0]), int(mouth_center_point[1])), 8, (0, 255, 0), -1)
+        # 右手中心點:右腕[16]、右小指[18]、右食指[20]、右姆指[22]
+        right_hand_center =  np.array([landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value],
+                                      landmarks[mp_pose.PoseLandmark.RIGHT_PINKY.value],
+                                      landmarks[mp_pose.PoseLandmark.RIGHT_INDEX.value],
+                                      landmarks[mp_pose.PoseLandmark.RIGHT_THUMB.value]]).mean(axis=0)
+        cv2.circle(output_image, (int(right_hand_center[0]), int(right_hand_center[1])), 8, (0, 0, 255), -1)
 
-
-        ''' ---------- 左手部landmark 左肩[11]-左肘[13]-左腕[15], 左腕[15]-左小指[17]-左食指[19]-左姆指[21] ---------- '''
-        p11 = get_coords(landmarks[11], w, h) #左肩
-        p13 = get_coords(landmarks[13], w, h) #左肘
-        p15 = get_coords(landmarks[15], w, h) #左腕
-        p17 = get_coords(landmarks[17], w, h) #左小指
-        p19 = get_coords(landmarks[19], w, h) #左食指
-        p21 = get_coords(landmarks[21], w, h) #左姆指
-
-        ''' ---------- 計算左手肘角度 ---------- '''
-        left_elbow_angle = calculate_angle(p11, p13, p15)
-
-        ''' ---------- 顯示左手肘角度 ---------- '''
-        cv2.putText(
-            img_bgr, f"Left Elbow: {int(left_elbow_angle)} deg",
-            (660, 50), cv2.FONT_HERSHEY_SIMPLEX,
-            0.9, (0, 255, 255), 2
-        )
-        
-        ''' ---------- 著色>左手部面積 BGR ---------- '''
-        points_int = np.array([p15, p17, p19, p21], dtype=np.int32).reshape((-1, 1, 2))
-        cv2.fillPoly(img_bgr, [points_int], (255, 200, 0))
-
-        ''' ---------- 計算左手部四點的平均作為中心點 ---------- '''
-        left_hand_points = np.array([p15, p17, p19, p21])
-        left_hand_center = np.mean(left_hand_points, axis=0)
-
-        ''' ---------- 著色>左手部中心點 ---------- '''
-        cv2.circle(img_bgr, (int(left_hand_center[0]), int(left_hand_center[1])), 8, (0, 255, 255), -1)
-
-        """ ------ 左手部中心點到嘴角二點中心點的距離 ------ """
-        left_distence = np.linalg.norm(left_hand_center - mouth_center_point)
-        cv2.putText(img_bgr, f"Left Hand to ",
-                    (660, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
-        cv2.putText(img_bgr, f"Mouth distence: {int(left_distence)} px",
-                    (660, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
-
-
-        ''' ---------- 右手部landmark 右肩[12]-右肘[14]-右腕[16], 右腕[16]-右小指[18]-右食指[20]-右姆指[22] ---------- '''
-        p12 = get_coords(landmarks[12], w, h) #右肩
-        p14 = get_coords(landmarks[14], w, h) #右肘
-        p16 = get_coords(landmarks[16], w, h) #右腕
-        p18 = get_coords(landmarks[18], w, h) #右小指
-        p20 = get_coords(landmarks[20], w, h) #右食指
-        p22 = get_coords(landmarks[22], w, h) #右姆指
-
-        ''' ---------- 計算右手肘角度 ---------- '''
-        right_elbow_angle = calculate_angle(p12, p14, p16)
-
-        ''' ---------- 顯示右手肘角度 ---------- '''
-        cv2.putText(
-            img_bgr, f"Right Elbow: {int(right_elbow_angle)} deg",
-            (30, 50), cv2.FONT_HERSHEY_SIMPLEX,
-            0.9, (255, 0, 255), 2
-        )
-
-        ''' ---------- 著色>右手部面積 BGR ---------- '''
-        points_int = np.array([p16, p18, p20, p22], dtype=np.int32).reshape((-1, 1, 2))
-        cv2.fillPoly(img_bgr, [points_int], (255, 0, 0))
-
-        ''' ---------- 計算右手部四點的平均作為中心點 ---------- '''
-        right_hand_points = np.array([p16, p18, p20, p22])
-        right_hand_center = np.mean(right_hand_points, axis=0)
-        
-        ''' ---------- 著色>右手部中心點 ---------- '''
-        cv2.circle(img_bgr, (int(right_hand_center[0]), int(right_hand_center[1])), 8, (125, 0, 255), -1)
-
-        """ ------ 右手部中心點到嘴角二點中心點的距離 ------ """
-        right_distence = np.linalg.norm(right_hand_center - mouth_center_point)
-        cv2.putText(img_bgr, f"Right Hand to ",
-                    (30, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 2)
-        cv2.putText(img_bgr, f"Mouth distence: {int(right_distence)} px",
-                    (30, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 2)
-
-
-        ''' ---------- 畫 Pose's landmarks ---------- '''
-        mp_drawing.draw_landmarks(
-            img_bgr,
-            results.pose_landmarks,
-            mp_pose.POSE_CONNECTIONS,
-            mp_drawing.DrawingSpec(color=(245, 117, 66), thickness=2, circle_radius=4),
-            mp_drawing.DrawingSpec(color=(245, 66, 230), thickness=2, circle_radius=2)
-        )
-
-        return left_elbow_angle, right_elbow_angle, left_distence, right_distence
+        # 計算右手中心點與嘴中心點距離
+        r_2_m_distance = np.linalg.norm(right_hand_center - mouth_center)
 
     except Exception as e:
-        print("Error:", e)
-        return left_elbow_angle, right_elbow_angle, left_distence, right_distence
+        print(f"Error in detectPose: {e}")
+
+    output_image = cv2.flip(output_image, 1)
+    
+    cv2.putText(output_image, f'Left Elbow Angle: {int(left_elbow_angle)}', (30, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+    cv2.putText(output_image, f'L_H to M Distance: {int(l_2_m_distance)}', (30, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+    cv2.putText(output_image, f'Right Elbow Angle: {int(right_elbow_angle)}', (480, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)    
+    cv2.putText(output_image, f'R_H to M Distance: {int(r_2_m_distance)}', (480, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)    
+
+
+    is_eating_medicine = False
+    if left_elbow_angle <= 60 and l_2_m_distance <= 100:
+        is_eating_medicine = True
+        cv2.putText(output_image, "Eat Medicine", (100, 400), cv2.FONT_HERSHEY_SIMPLEX, 3.5, (100, 120, 0), 7)
+    elif right_elbow_angle <= 60 and r_2_m_distance <= 100:
+        is_eating_medicine = True
+        cv2.putText(output_image, "Eat Medicine", (100, 400), cv2.FONT_HERSHEY_SIMPLEX, 3.5, (100, 120, 0), 7)
+
+    return output_image, is_eating_medicine
