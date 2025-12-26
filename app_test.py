@@ -25,6 +25,7 @@ def show_landmarks(image, pose):
         for landmark in results.pose_landmarks.landmark:
             landmarks.append(np.array([int(landmark.x * width), 
                                        int(landmark.y * height)
+                                    #    int(landmark.z * width)
                                        ]))
         # landmarks = np.array(landmarks)
     else:
@@ -47,11 +48,6 @@ def calculate_angle(landmark1, landmark2, landmark3):
 
 def detectPose(output_image, landmarks):
     try:
-        left_elbow_angle = 0
-        right_elbow_angle = 0
-        left_distence = 0
-        right_distence = 0
-
 
         # 兩嘴角中心點:嘴角左[9]、嘴角右[10]
         mouth_center = (landmarks[mp_pose.PoseLandmark.MOUTH_LEFT.value] + landmarks[mp_pose.PoseLandmark.MOUTH_RIGHT.value]) / 2
@@ -67,14 +63,35 @@ def detectPose(output_image, landmarks):
                                            landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value], 
                                            landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value])
 
+        # 左手中心點:左腕[15]、左小指[17]、左食指[19]、左姆指[21]
+        left_hand_center = np.array([landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value],
+                                     landmarks[mp_pose.PoseLandmark.LEFT_PINKY.value],
+                                     landmarks[mp_pose.PoseLandmark.LEFT_INDEX.value],
+                                     landmarks[mp_pose.PoseLandmark.LEFT_THUMB.value]]).mean(axis=0)
+        cv2.circle(output_image, (int(left_hand_center[0]), int(left_hand_center[1])), 8, (0, 0, 255), -1)
 
+        # 計算左手中心點與嘴中心點距離
+        l_2_m_distance = np.linalg.norm(left_hand_center - mouth_center)
+
+        # 右手中心點:右腕[16]、右小指[18]、右食指[20]、右姆指[22]
+        right_hand_center =  np.array([landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value],
+                                      landmarks[mp_pose.PoseLandmark.RIGHT_PINKY.value],
+                                      landmarks[mp_pose.PoseLandmark.RIGHT_INDEX.value],
+                                      landmarks[mp_pose.PoseLandmark.RIGHT_THUMB.value]]).mean(axis=0)
+        cv2.circle(output_image, (int(right_hand_center[0]), int(right_hand_center[1])), 8, (0, 0, 255), -1)
+
+        # 計算右手中心點與嘴中心點距離
+        r_2_m_distance = np.linalg.norm(right_hand_center - mouth_center)
 
     except Exception as e:
         print(f"Error in detectPose: {e}")
 
     output_image = cv2.flip(output_image, 1)
-    cv2.putText(output_image, f'Left Elbow Angle: {int(left_elbow_angle)}', (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-    cv2.putText(output_image, f'Right Elbow Angle: {int(right_elbow_angle)}', (500, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)    
+    
+    cv2.putText(output_image, f'Left Elbow Angle: {int(left_elbow_angle)}', (30, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+    cv2.putText(output_image, f'L_H to M Distance: {int(l_2_m_distance)}', (30, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+    cv2.putText(output_image, f'Right Elbow Angle: {int(right_elbow_angle)}', (480, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)    
+    cv2.putText(output_image, f'R_H to M Distance: {int(r_2_m_distance)}', (480, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)    
 
     return output_image
 
@@ -99,7 +116,13 @@ def cap_real_time():
                 frame = detectPose(frame, landmarks)
             else:
                 cv2.putText(frame, "No Pose Detected", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-            
+            ''' -------- if wanna put other thing, must after this line -------- '''            
+            # 目前時間
+            current_time = t.localtime()
+            format_time = t.strftime("%Y-%m-%d %A %H:%M:%S", current_time)
+            now = format_time
+            cv2.putText(frame, f"{now}", (80, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 3)
+
             ret, jpeg = cv2.imencode('.jpg', frame)
             frame = jpeg.tobytes()
             yield (b'--frame\r\n'
@@ -121,7 +144,7 @@ def stop():
     if camera_video is not None and 'camera_video' in globals():
         if camera_video.isOpened():
             camera_video.release()
-            os._exit(0)
+            # os._exit(0)
     # return render_template('index.html')
 
 @app.route('/cap_in_html')
