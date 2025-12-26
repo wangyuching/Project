@@ -3,7 +3,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import time as t
-import math
+import os
 
 app = Flask(__name__)
 
@@ -26,7 +26,7 @@ def show_landmarks(image, pose):
             landmarks.append(np.array([int(landmark.x * width), 
                                        int(landmark.y * height)
                                        ]))
-        landmarks = np.array(landmarks)
+        # landmarks = np.array(landmarks)
     else:
         landmarks = np.array([])
     return output_image, landmarks
@@ -46,63 +46,37 @@ def calculate_angle(landmark1, landmark2, landmark3):
     return angle
 
 def detectPose(output_image, landmarks):
-    if landmarks.size == 0:
-        cv2.putText(output_image, "No Pose Detected", (10, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
-        return output_image
-
     try:
         left_elbow_angle = 0
         right_elbow_angle = 0
         left_distence = 0
         right_distence = 0
 
-        # 嘴角左[9]、嘴角右[10]
-        mouth_center = (landmarks[9] + landmarks[10]) / 2
+
+        # 兩嘴角中心點:嘴角左[9]、嘴角右[10]
+        mouth_center = (landmarks[mp_pose.PoseLandmark.MOUTH_LEFT.value] + landmarks[mp_pose.PoseLandmark.MOUTH_RIGHT.value]) / 2
         cv2.circle(output_image, (int(mouth_center[0]), int(mouth_center[1])), 8, (0, 255, 0), -1)
-    
+
+        # 左手肘角度:左肩[11]、左肘[13]、左腕[15]
+        left_elbow_angle = calculate_angle(landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value], 
+                                           landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value], 
+                                           landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value])
+
+        # 右手肘角度:右肩[12]、右肘[14]、右腕[16]
+        right_elbow_angle = calculate_angle(landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value], 
+                                           landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value], 
+                                           landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value])
+
+
+
     except Exception as e:
         print(f"Error in detectPose: {e}")
 
-    return output_image
+    output_image = cv2.flip(output_image, 1)
+    cv2.putText(output_image, f'Left Elbow Angle: {int(left_elbow_angle)}', (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+    cv2.putText(output_image, f'Right Elbow Angle: {int(right_elbow_angle)}', (500, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)    
 
-# def classifyPose(landmarks, output_image):
-#     label = 'Unknown Pose'
-#     color = (0, 0, 255)
-#     left_elbow_angle = calculate_angle(landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value],
-#                                       landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value],
-#                                       landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value])
-#     right_elbow_angle = calculate_angle(landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value],
-#                                        landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value],
-#                                        landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value])   
-#     left_shoulder_angle = calculate_angle(landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value],
-#                                          landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value],
-#                                          landmarks[mp_pose.PoseLandmark.LEFT_HIP.value])
-#     right_shoulder_angle = calculate_angle(landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value],
-#                                           landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value],
-#                                           landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value])
-#     left_knee_angle = calculate_angle(landmarks[mp_pose.PoseLandmark.LEFT_HIP.value],
-#                                      landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value],
-#                                      landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value])
-#     right_knee_angle = calculate_angle(landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value],
-#                                       landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value],
-#                                       landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value])
-#     if (165 < left_knee_angle < 195) and (165 < right_knee_angle < 195) \
-#         and (130 < left_elbow_angle < 180) and (175 < right_elbow_angle < 220) \
-#         and (100 < left_shoulder_angle < 200) and (50 < right_shoulder_angle < 130):
-#         label = 'T Pose'
-#     if left_elbow_angle > 165 and left_elbow_angle < 195 and right_elbow_angle > 165 and right_elbow_angle < 195:
-#         if left_shoulder_angle > 80 and left_shoulder_angle < 110 and right_shoulder_angle > 80 and right_shoulder_angle < 110:
-#             if left_knee_angle > 165 and left_knee_angle < 195 or right_knee_angle > 165 and right_knee_angle < 195:
-#                 if left_knee_angle > 90 and left_knee_angle < 120 or right_knee_angle > 90 and right_knee_angle < 120:
-#                     label = 'Warrior II Pose' 
-#     if left_knee_angle > 165 and left_knee_angle < 195 or right_knee_angle > 165 and right_knee_angle < 195:
-#         if left_knee_angle > 315 and left_knee_angle < 335 or right_knee_angle > 25 and right_knee_angle < 45:
-#             label = 'Tree Pose'
-#     if label != 'Unknown Pose':
-#         color = (0, 255, 0)  
-#     cv2.putText(output_image, label, (10, 30), cv2.FONT_HERSHEY_PLAIN, 2, color, 2)
-    
-#     return output_image, label
+    return output_image
 
 camera_video = None
 def cap_real_time():
@@ -115,12 +89,17 @@ def cap_real_time():
             ok, frame = camera_video.read()
             if not ok:
                 continue
-            frame = cv2.flip(frame, 1)
+
+            # frame = cv2.flip(frame, 1)
             frame_height, frame_width, _ = frame.shape
             frame = cv2.resize(frame, (int(frame_width * (650 / frame_height)), 650))
+
             frame, landmarks = show_landmarks(frame, pose)
-            # if landmarks.size > 0:
-            #     frame = detectPose(frame, landmarks)
+            if landmarks:
+                frame = detectPose(frame, landmarks)
+            else:
+                cv2.putText(frame, "No Pose Detected", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            
             ret, jpeg = cv2.imencode('.jpg', frame)
             frame = jpeg.tobytes()
             yield (b'--frame\r\n'
@@ -142,6 +121,7 @@ def stop():
     if camera_video is not None and 'camera_video' in globals():
         if camera_video.isOpened():
             camera_video.release()
+            os._exit(0)
     # return render_template('index.html')
 
 @app.route('/cap_in_html')
