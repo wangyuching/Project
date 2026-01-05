@@ -12,7 +12,11 @@ def cap_real_time():
     cap.set(4, 768)
     current_eat_state = "ready"
     count = 0
+
+    eating_frame_count = 0
+    ACTION_THRESHOLD = 2 #fps
     last_count_time = 0
+    COOLDOWN_SECONDS = 2  # seconds
     # ------------------------------
     while cap.isOpened():
         ok, frame = cap.read()
@@ -41,15 +45,20 @@ def cap_real_time():
         if count == 2:
             count = 0
 
-        if current_eat_state == "Detecting" and is_eating_pose:
-            current_time = t.time()
-            if current_time - last_count_time > 2:
-                last_count_time = current_time
+        current_time = t.time()
+
+        if is_eating_pose:
+            eating_frame_count += 1
+            if eating_frame_count >= ACTION_THRESHOLD and(current_time - last_count_time) > COOLDOWN_SECONDS:
                 count += 1
                 current_eat_state = "Eating"
                 last_count_time = current_time
-        elif is_resting_pose:
-            current_eat_state = "Detecting"        
+                eating_frame_count = 0
+        else:
+            eating_frame_count = 0
+        
+        if is_resting_pose:
+            current_eat_state = "Detecting"    
 
         cv2.putText(frame, f'Current State: {current_eat_state}', (30, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 3)
         cv2.putText(frame, f'Count: {count}', (30, 250), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 3)
