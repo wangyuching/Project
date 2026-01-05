@@ -3,14 +3,6 @@ import time as t
 import pygame
 import os
 
-detect = 5
-alarm = 3
-detect_start_time = None
-alarm_start_time = None
-wait_time = None
-current_timer_state = "DETECT"
-Delay_second = 1.0
-
 base_dir = os.path.dirname(os.path.abspath(__file__))
 alarm_sound_path = os.path.join(base_dir, "static", "alarm3.mp3")
 
