@@ -10,13 +10,15 @@ def cap_real_time():
     cap = cv2.VideoCapture(0)
     cap.set(3, 1024)
     cap.set(4, 768)
-    current_eat_state = "ready"
+    current_eat_state = None
     count = 0
-
+    # ------------------------------
     eating_frame_count = 0
-    ACTION_THRESHOLD = 2 #fps
+    ACTION_THRESHOLD = 3 #fps
     last_count_time = 0
     COOLDOWN_SECONDS = 2  # seconds
+    # ------------------------------
+    first_eat_time = 0
     # ------------------------------
     while cap.isOpened():
         ok, frame = cap.read()
@@ -36,9 +38,6 @@ def cap_real_time():
             is_eating_pose = (left_elbow_angle <= 60 and l_2_m_distance <= 100) or (right_elbow_angle <= 60 and r_2_m_distance <= 100)
             # 判斷是否處於結束姿勢
             is_resting_pose = (left_elbow_angle >= 90) or (right_elbow_angle >= 90)
-            # 重置計數
-            if count == 2:
-                count = 0
             # 抓時間
             current_time = t.time()
             if is_eating_pose:
@@ -48,8 +47,23 @@ def cap_real_time():
                     current_eat_state = "Eating"
                     last_count_time = current_time
                     eating_frame_count = 0
+                    # 記錄時間
+                    log_time = t.strftime("%Y-%m-%d %A %H:%M:%S", t.localtime(current_time))
+                    try:
+                        with open("eat_log.txt", "a", encoding="utf-8") as f:
+                            if count == 1:
+                                f.write(f"First eat at: {log_time}\n")
+                                first_eat_time = current_time
+                            elif count == 2:
+                                f.write(f"Second eat at: {log_time}\n\n")
+                                count = 0
+                                first_eat_time = 0
+                    except Exception as e:
+                        print(f"Error writing to log file: {e}")
+
             else:
                 eating_frame_count = 0
+
             if is_resting_pose:
                 current_eat_state = "Detecting"    
 
@@ -59,7 +73,21 @@ def cap_real_time():
         else:
             frame = cv2.flip(frame, 1)
             cv2.putText(frame, "No Pose Detected", (80, 400), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 7)
-        ''' -------- if wanna put other thing, must after this line -------- '''            
+
+        # 自動記錄第二次吃藥
+        current_time = t.time()
+        if count == 1 and first_eat_time != 0:
+            if (current_time - first_eat_time) > 30:
+                second_eat_time = t.strftime("%Y-%m-%d %A %H:%M:%S", t.localtime(first_eat_time + 30))
+                try:
+                    with open("eat_log.txt", "a", encoding="utf-8") as f:
+                        f.write(f"Second eat at: {second_eat_time} (Auto logged after 30 seconds)\n\n")
+                except Exception as e:
+                    print(f"Error writing to log file: {e}")
+
+                count = 0
+                first_eat_time = 0
+                current_eat_state = "Detecting"
 
         # 顯示目前時間
         current_time = t.localtime()
