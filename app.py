@@ -7,10 +7,12 @@ from TimeLogic import timer
 app = Flask(__name__)
 
 def cap_real_time():
+    # dont need to change values here
     cap = cv2.VideoCapture(0)
     cap.set(3, 1024)
     cap.set(4, 768)
-
+    my_timer = timer()
+    # ------------------------------
     while cap.isOpened():
         ok, frame = cap.read()
         if not ok:
@@ -22,7 +24,6 @@ def cap_real_time():
         frame, landmarks = DrawUtil.show_landmarks(frame, DrawUtil.pose)
 
         # 偵測吃藥動作
-        is_eating_medicine = False
         if landmarks:
             frame, is_eating_medicine = DrawUtil.detectPose(frame, landmarks)
         else:
@@ -36,7 +37,7 @@ def cap_real_time():
         cv2.putText(frame, f"{now}", (80, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 3)
 
         # ''' ---------- 倒數計時器 ---------- '''
-        frame = timer().update(frame, is_eating_medicine)   
+        frame = my_timer.update(frame, is_eating_medicine)   
 
         ret, jpeg = cv2.imencode('.jpg', frame)
         frame = jpeg.tobytes()
