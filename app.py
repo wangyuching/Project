@@ -28,7 +28,6 @@ def cap_real_time():
 
         frame, landmarks = DrawUtil.show_landmarks(frame, DrawUtil.pose)
 
-        # 偵測吃藥動作
         if landmarks:
             frame, left_elbow_angle, right_elbow_angle, l_2_m_distance, r_2_m_distance = DrawUtil.detectPose(frame, landmarks)
             
