@@ -65,7 +65,7 @@
                 fetch('/clear_txt', { method: 'POST' })
                     .then(response => {
                         if (response.ok) {
-                            document.getElementById('log_content').innerText = '暫無紀錄';
+                            document.getElementById('log-content').innerText = '暫無紀錄';
                         } else {
                             alert('清除紀錄失敗');
                         }
