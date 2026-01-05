@@ -2,7 +2,7 @@ import cv2
 import mediapipe as mp
 import time as t
 import DrawUtil
-import TimeLogic
+import TimeLogic as TimeLogic
 
 class camera_stream:
 

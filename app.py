@@ -2,7 +2,6 @@ from flask import Flask, render_template, Response
 import cv2
 import time as t
 import DrawUtil
-from TimeLogic import timer
 
 app = Flask(__name__)
 
@@ -11,7 +10,6 @@ def cap_real_time():
     cap = cv2.VideoCapture(0)
     cap.set(3, 1024)
     cap.set(4, 768)
-    my_timer = timer()
     # ------------------------------
     while cap.isOpened():
         ok, frame = cap.read()
@@ -34,10 +32,7 @@ def cap_real_time():
         current_time = t.localtime()
         format_time = t.strftime("%Y-%m-%d %A %H:%M:%S", current_time)
         now = format_time
-        cv2.putText(frame, f"{now}", (80, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 3)
-
-        # ''' ---------- 倒數計時器 ---------- '''
-        # frame = my_timer.update(frame, is_eating_medicine)   
+        cv2.putText(frame, f"{now}", (80, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 3)  
 
         ret, jpeg = cv2.imencode('.jpg', frame)
         frame = jpeg.tobytes()

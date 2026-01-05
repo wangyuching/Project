@@ -85,12 +85,12 @@ def detectPose(output_image, landmarks):
     cv2.putText(output_image, f'R_H to M Distance: {int(r_2_m_distance)}', (480, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)    
 
 
-    is_eating_medicine = False
+    
     if left_elbow_angle <= 60 and l_2_m_distance <= 100:
-        is_eating_medicine = True
+        
         cv2.putText(output_image, "Eat Medicine", (100, 400), cv2.FONT_HERSHEY_SIMPLEX, 3.5, (0, 255, 255), 7)
     elif right_elbow_angle <= 60 and r_2_m_distance <= 100:
-        is_eating_medicine = True
+        
         cv2.putText(output_image, "Eat Medicine", (100, 400), cv2.FONT_HERSHEY_SIMPLEX, 3.5, (0, 255, 255), 7)
 
-    return output_image, is_eating_medicine
+    return output_image
