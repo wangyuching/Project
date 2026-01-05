@@ -36,7 +36,7 @@ def cap_real_time():
         cv2.putText(frame, f"{now}", (80, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 3)
 
         # ''' ---------- 倒數計時器 ---------- '''
-        frame = timer.update(frame, is_eating_medicine)   
+        frame = timer().update(frame, is_eating_medicine)   
 
         ret, jpeg = cv2.imencode('.jpg', frame)
         frame = jpeg.tobytes()
@@ -52,14 +52,6 @@ def index():
 @app.route('/cap_in_html')
 def cap_in_html():
     return Response(cap_real_time(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-# @app.route('/stop', methods=['POST'])
-# def stop():
-#     global camera_video
-#     if camera_video:
-#         camera_video.release()
-#         camera_video = None
-#     return "Camera stream stopped."
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=7337)

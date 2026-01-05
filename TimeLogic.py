@@ -26,7 +26,7 @@ class timer:
     
         pygame.mixer.init()
         try:
-            pygame.mixer.music.load("./alarm3.mp3")
+            pygame.mixer.music.load(alarm_sound_path)
         except Exception as e:
             print("Error loading alarm sound:", e)
 
