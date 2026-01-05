@@ -10,8 +10,9 @@ def cap_real_time():
     cap = cv2.VideoCapture(0)
     cap.set(3, 1024)
     cap.set(4, 768)
+    current_eat_state = "ready"
     count = 0
-    current_eat_state = "no_eating"
+    last_count_time = 0
     # ------------------------------
     while cap.isOpened():
         ok, frame = cap.read()
@@ -29,18 +30,22 @@ def cap_real_time():
         else:
             cv2.putText(frame, "No Pose Detected", (80, 400), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 7)
         ''' -------- if wanna put other thing, must after this line -------- '''            
+        
         # 計算吃藥次數
-        if left_elbow_angle >= 90:
-            current_eat_state = "not_eating"
-        elif right_elbow_angle >= 90:
-            current_eat_state = "not_eating"
+        # 判斷是否處於吃藥姿勢
+        is_eating_pose = (left_elbow_angle <= 60 and l_2_m_distance <= 100) or (right_elbow_angle <= 60 and r_2_m_distance <= 100)
+        # 判斷是否處於結束姿勢
+        is_resting_pose = (left_elbow_angle >= 90) or (right_elbow_angle >= 90)
 
-        if left_elbow_angle <= 60 and l_2_m_distance <= 100 and current_eat_state == "not_eating":
-            current_eat_state = "eating"
-            count += 1
-        elif right_elbow_angle <= 60 and r_2_m_distance <= 100 and current_eat_state == "not_eating":
-            current_eat_state = "eating"
-            count += 1
+        if current_eat_state == "Detecting" and is_eating_pose:
+            current_time = t.time()
+            if current_time - last_count_time > 2:
+                last_count_time = current_time
+                count += 1
+                current_eat_state = "Eating"
+                last_count_time = current_time
+        elif is_resting_pose:
+            current_eat_state = "Detecting"
 
         cv2.putText(frame, f'Current State: {current_eat_state}', (30, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 3)
         cv2.putText(frame, f'Count: {count}', (30, 250), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 3)
