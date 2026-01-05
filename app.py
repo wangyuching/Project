@@ -36,13 +36,11 @@ def cap_real_time():
             # 計算吃藥次數
             # 判斷是否處於吃藥姿勢
             is_eating_pose = (left_elbow_angle <= 60 and l_2_m_distance <= 100) or (right_elbow_angle <= 60 and r_2_m_distance <= 100)
-            # 判斷是否處於結束姿勢
-            is_resting_pose = (left_elbow_angle >= 90) or (right_elbow_angle >= 90)
             # 抓時間
             current_time = t.time()
             if is_eating_pose:
                 eating_frame_count += 1
-                if eating_frame_count >= ACTION_THRESHOLD and(current_time - last_count_time) > COOLDOWN_SECONDS:
+                if eating_frame_count > ACTION_THRESHOLD and (current_time - last_count_time) > COOLDOWN_SECONDS:
                     count += 1
                     current_eat_state = "Eating"
                     last_count_time = current_time
@@ -60,16 +58,9 @@ def cap_real_time():
                                 first_eat_time = 0
                     except Exception as e:
                         print(f"Error writing to log file: {e}")
-
             else:
                 eating_frame_count = 0
-
-            if is_resting_pose:
-                current_eat_state = "Detecting"    
-
-            cv2.putText(frame, f'Current State: {current_eat_state}', (30, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 3)
-            cv2.putText(frame, f'Count: {count}', (30, 250), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 3)
-
+                current_eat_state = "Detecting" 
         else:
             frame = cv2.flip(frame, 1)
             cv2.putText(frame, "No Pose Detected", (80, 400), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 7)
@@ -95,6 +86,10 @@ def cap_real_time():
         now = format_time
         cv2.putText(frame, f"{now}", (80, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 3)  
 
+        # 顯示目前狀態與吃藥次數
+        cv2.putText(frame, f'Current State: {current_eat_state}', (30, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 3)
+        cv2.putText(frame, f'Count: {count}', (30, 250), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 3)
+
         ret, jpeg = cv2.imencode('.jpg', frame)
         frame = jpeg.tobytes()
         yield (b'--frame\r\n'
@@ -109,6 +104,24 @@ def index():
 @app.route('/cap_in_html')
 def cap_in_html():
     return Response(cap_real_time(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/get_txt')
+def get_txt():
+    try:
+        with open("eat_log.txt", "r", encoding="utf-8") as f:
+            content = f.read()
+        return content
+    except FileNotFoundError:
+        return "Log file not found."
+    
+@app.route('/clear_txt', methods=['POST'])
+def clear_txt():
+    try:
+        with open("eat_log.txt", "w", encoding="utf-8") as f:
+            f.write("")
+        return "Log file cleared."
+    except Exception as e:
+        return f"Error clearing log file: {e}"
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=7337)

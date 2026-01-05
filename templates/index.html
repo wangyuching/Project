@@ -13,8 +13,21 @@
             height: 100vh;
             display: flex;
             flex-direction: row;
-            justify-content: center;
+            justify-content: space-evenly;
             align-items: center;
+            border-radius: 10px;
+        }
+
+        .time {
+            width: 30%;
+            height: 80%;
+            background-color: rgb(19, 92, 155);
+            color: rgb(234, 237, 255);
+            font-size: 18px;
+            padding: 20px;
+            overflow-y: auto;
+            white-space: pre-line;
+            border-radius: 10px;
         }
 
         img {
@@ -25,7 +38,44 @@
 </head>
 
 <body>
+    <div class="time-container" style="width: 30%; display: flex; flex-direction: column; height: 80%;">
+        <div class="time" id="log-content" style="width: 100%; flex-grow: 1;">載入中...</div>
+        <button onclick="clearLogs()" class="btn btn-danger mt-2">清除紀錄</button>
+    </div>
     <img src="{{ url_for('cap_in_html') }}" alt="Video Stream">
+
+    <script>
+        function updateLog() {
+            fetch('/get_txt')
+                .then(response => response.text())
+                .then(data => {
+                    const logDiv = document.getElementById('log-content');
+                    logDiv.innerText = data;
+                    logDiv.scrollTop = logDiv.scrollHeight;
+                })
+                .catch(error => {
+                    console.error('Error fetching log:', error);
+                });
+        }
+        setInterval(updateLog, 1000);
+        updateLog();
+
+        function clearLogs() {
+            if (confirm("確定要清除紀錄嗎？")) {
+                fetch('/clear_txt', { method: 'POST' })
+                    .then(response => {
+                        if (response.ok) {
+                            document.getElementById('log_content').innerText = '暫無紀錄';
+                        } else {
+                            alert('清除紀錄失敗');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error clearing log:', error);
+                    });
+            }
+        }
+    </script>
 </body>
 
 </html>
