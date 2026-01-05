@@ -10,6 +10,8 @@ def cap_real_time():
     cap = cv2.VideoCapture(0)
     cap.set(3, 1024)
     cap.set(4, 768)
+    count = 0
+    current_eat_state = "no_eating"
     # ------------------------------
     while cap.isOpened():
         ok, frame = cap.read()
@@ -23,12 +25,27 @@ def cap_real_time():
 
         # 偵測吃藥動作
         if landmarks:
-            frame, is_eating_medicine = DrawUtil.detectPose(frame, landmarks)
+            frame, left_elbow_angle, right_elbow_angle, l_2_m_distance, r_2_m_distance = DrawUtil.detectPose(frame, landmarks)
         else:
             cv2.putText(frame, "No Pose Detected", (80, 400), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 7)
-        
         ''' -------- if wanna put other thing, must after this line -------- '''            
-        # 目前時間
+        # 計算吃藥次數
+        if left_elbow_angle >= 90:
+            current_eat_state = "not_eating"
+        elif right_elbow_angle >= 90:
+            current_eat_state = "not_eating"
+
+        if left_elbow_angle <= 60 and l_2_m_distance <= 100 and current_eat_state == "not_eating":
+            current_eat_state = "eating"
+            count += 1
+        elif right_elbow_angle <= 60 and r_2_m_distance <= 100 and current_eat_state == "not_eating":
+            current_eat_state = "eating"
+            count += 1
+
+        cv2.putText(frame, f'Current State: {current_eat_state}', (30, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 3)
+        cv2.putText(frame, f'Count: {count}', (30, 250), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 3)
+
+        # 顯示目前時間
         current_time = t.localtime()
         format_time = t.strftime("%Y-%m-%d %A %H:%M:%S", current_time)
         now = format_time
