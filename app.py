@@ -37,6 +37,10 @@ def cap_real_time():
         # 判斷是否處於結束姿勢
         is_resting_pose = (left_elbow_angle >= 90) or (right_elbow_angle >= 90)
 
+        # 重置計數
+        if count == 2:
+            count = 0
+
         if current_eat_state == "Detecting" and is_eating_pose:
             current_time = t.time()
             if current_time - last_count_time > 2:
@@ -45,7 +49,7 @@ def cap_real_time():
                 current_eat_state = "Eating"
                 last_count_time = current_time
         elif is_resting_pose:
-            current_eat_state = "Detecting"
+            current_eat_state = "Detecting"        
 
         cv2.putText(frame, f'Current State: {current_eat_state}', (30, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 3)
         cv2.putText(frame, f'Count: {count}', (30, 250), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 3)
