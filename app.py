@@ -50,10 +50,10 @@ def cap_real_time():
                     try:
                         with open("eat_log.txt", "a", encoding="utf-8") as f:
                             if count == 1:
-                                f.write(f"First eat at: {log_time}\n")
+                                f.write(f"Start at: {log_time}\n")
                                 first_eat_time = current_time
                             elif count == 2:
-                                f.write(f"Second eat at: {log_time}\n\n")
+                                f.write(f"Finish at: {log_time}\n\n")
                                 count = 0
                                 first_eat_time = 0
                     except Exception as e:
@@ -65,14 +65,14 @@ def cap_real_time():
             frame = cv2.flip(frame, 1)
             cv2.putText(frame, "No Pose Detected", (80, 400), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 7)
 
-        # 自動記錄第二次吃藥
+        # 自動記錄第二次吃藥(放在if landmarks外,沒有偵測道動作時也會執行)
         current_time = t.time()
         if count == 1 and first_eat_time != 0:
             if (current_time - first_eat_time) > 30:
                 second_eat_time = t.strftime("%Y-%m-%d %A %H:%M:%S", t.localtime(first_eat_time + 30))
                 try:
                     with open("eat_log.txt", "a", encoding="utf-8") as f:
-                        f.write(f"Second eat at: {second_eat_time} (Auto logged after 30 seconds)\n\n")
+                        f.write(f"Finish at: {second_eat_time} (Auto logged after 30 seconds)\n\n")
                 except Exception as e:
                     print(f"Error writing to log file: {e}")
 
