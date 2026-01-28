@@ -2,12 +2,38 @@ from flask import Flask, render_template, Response
 import cv2
 import time as t
 import DrawUtil
+import mysql.connector
+import threading
 
 app = Flask(__name__)
+
+DB_config = {
+    "host":"127.0.0.1",
+    "port":"3306",
+    "user":"root",
+    "password":"DataBase",
+    "database":"project"
+    }
+
+file_lock = threading.Lock()
+
+def save_to_db( log_time, status, auto_finish):
+    try:
+        with mysql.connector.connect(**DB_config) as connect:
+            with connect.cursor() as cursor:
+                sql = "INSERT INTO intake_logs (time, status, auto_finish) VALUES (%s, %s, %s)"
+                cursor.execute(sql, (log_time, status, auto_finish))
+                connect.commit()
+    except Exception as e:
+        print(f"背景寫入失敗: {e}")
 
 def cap_real_time():
     # dont need to change values here
     cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Cannot open camera")
+        return
+
     cap.set(3, 1024)
     cap.set(4, 768)
     current_eat_state = None
@@ -23,7 +49,7 @@ def cap_real_time():
     while cap.isOpened():
         ok, frame = cap.read()
         if not ok:
-            continue
+            break
         
         frame_height, frame_width, _ = frame.shape
         frame = cv2.resize(frame, (int(frame_width * (650 / frame_height)), 650))
@@ -47,17 +73,20 @@ def cap_real_time():
                     eating_frame_count = 0
                     # 記錄時間
                     log_time = t.strftime("%Y-%m-%d %A %H:%M:%S", t.localtime(current_time))
-                    try:
+
+                    status = "Start" if count == 1 else "Finish"
+                    thread = threading.Thread(target=save_to_db, args=(log_time, status, ""))
+                    thread.start()
+
+                    with file_lock:
                         with open("eat_log.txt", "a", encoding="utf-8") as f:
-                            if count == 1:
-                                f.write(f"Start at: {log_time}\n")
-                                first_eat_time = current_time
-                            elif count == 2:
-                                f.write(f"Finish at: {log_time}\n\n")
-                                count = 0
-                                first_eat_time = 0
-                    except Exception as e:
-                        print(f"Error writing to log file: {e}")
+                            f.write(f"{status} at: {log_time}\n" + ("" if status == "Start" else "\n"))
+
+                        if count == 1:
+                            first_eat_time = current_time
+                        elif count == 2:
+                            count = 0
+                            first_eat_time = 0
             else:
                 eating_frame_count = 0
                 current_eat_state = "Detecting" 
@@ -69,12 +98,12 @@ def cap_real_time():
         current_time = t.time()
         if count == 1 and first_eat_time != 0:
             if (current_time - first_eat_time) > 30:
-                second_eat_time = t.strftime("%Y-%m-%d %A %H:%M:%S", t.localtime(first_eat_time + 30))
-                try:
+                auto_second_time = t.strftime("%Y-%m-%d %A %H:%M:%S", t.localtime(first_eat_time + 30))
+                thread = threading.Thread(target=save_to_db, args=(auto_second_time, "Finish", "Auto logged after 30 seconds"))
+                thread.start()
+                with file_lock:
                     with open("eat_log.txt", "a", encoding="utf-8") as f:
-                        f.write(f"Finish at: {second_eat_time} (Auto logged after 30 seconds)\n\n")
-                except Exception as e:
-                    print(f"Error writing to log file: {e}")
+                        f.write(f"Finish at: {auto_second_time} (Auto logged after 30 seconds)\n\n")
 
                 count = 0
                 first_eat_time = 0
@@ -94,8 +123,8 @@ def cap_real_time():
         frame = jpeg.tobytes()
         yield (b'--frame\r\n'
             b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
     cap.release()
-    cv2.destroyAllWindows()
 
 @app.route('/')
 def index():
