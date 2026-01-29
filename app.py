@@ -1,24 +1,41 @@
-from flask import Flask, render_template, Response
+from flask import Flask, render_template, Response, jsonify
 import cv2
 import time as t
 import DrawUtil
 import mysql.connector
+from mysql.connector import pooling
 import threading
 
 app = Flask(__name__)
 
-file_lock = threading.Lock()
+from mysql.connector import pooling
+
+db_config = {
+    "host": "127.0.0.1",
+    "port": 3306,
+    "user": "root",
+    "password": "DataBase",
+    "database": "project"
+}
+
+try:
+    connection_pool = pooling.MySQLConnectionPool(
+        pool_name="med_pool",
+        pool_size=5,
+        **db_config
+    )
+    print("Database Connection Pool 建立成功")
+except mysql.connector.Error as err:
+    print(f"建立連線池失敗: {err}")
+    connection_pool = None
 
 def save_to_db( log_time, state, auto_finish):
+    if not connection_pool:
+        print("連線池未就緒，無法寫入")
+        return
     connect = None
     try:
-        connect = mysql.connector.connect(
-            host="127.0.0.1",
-            port=3306,
-            user="root",
-            password="DataBase",
-            database="project"
-        )
+        connect = connection_pool.get_connection()
         cursor = connect.cursor()
         sql = "INSERT INTO `take_medicine` (time, state, auto_finish) VALUES (%s, %s, %s)"
         cursor.execute(sql, (log_time, state, auto_finish))
@@ -82,15 +99,11 @@ def cap_real_time():
                         thread = threading.Thread(target=save_to_db, args=(log_time, state, ""))
                         thread.start()
 
-                        with file_lock:
-                            with open("eat_log.txt", "a", encoding="utf-8") as f:
-                                f.write(f"{state} at: {log_time}\n" + ("" if state == "Start" else "\n"))
-
-                            if count == 1:
-                                first_eat_time = current_time
-                            elif count == 2:
-                                count = 0
-                                first_eat_time = 0
+                        if count == 1:
+                            first_eat_time = current_time
+                        elif count == 2:
+                            count = 0
+                            first_eat_time = 0
                 else:
                     eating_frame_count = 0
                     current_eat_state = "Detecting" 
@@ -105,9 +118,6 @@ def cap_real_time():
                     auto_second_time = t.strftime("%Y-%m-%d %H:%M:%S", t.localtime(first_eat_time + 30))
                     thread = threading.Thread(target=save_to_db, args=(auto_second_time, "Finish", "Auto logged after 30 seconds"))
                     thread.start()
-                    with file_lock:
-                        with open("eat_log.txt", "a", encoding="utf-8") as f:
-                            f.write(f"Finish at: {auto_second_time} (Auto logged after 30 seconds)\n\n")
 
                     count = 0
                     first_eat_time = 0
@@ -134,30 +144,53 @@ def cap_real_time():
         print("Video capture released.")
 
 @app.route('/')
-def index():
-    return render_template('index.html')
+def home():
+    return render_template('home.html', title='Home')
+
+@app.route('/api/get_history')
+def get_history():
+    connect = None
+    history = []
+    try:
+        connect = connection_pool.get_connection()
+        cursor = connect.cursor(dictionary=True)
+        sql = """
+            SELECT 
+                DATE_FORMAT(time, '%Y-%m-%d %H:%i:%S') as time,
+                state, 
+                auto_finish 
+            FROM `take_medicine`;
+        """
+        cursor.execute(sql)
+        history = cursor.fetchall()
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+    finally:
+        if connect and connect.is_connected():
+            cursor.close()
+            connect.close()
+    return jsonify(history)
 
 @app.route('/cap_in_html')
 def cap_in_html():
     return Response(cap_real_time(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-@app.route('/get_txt')
-def get_txt():
+@app.route('/history_from_db')
+def history_from_db():
+    connect = None
+    history = []
     try:
-        with open("eat_log.txt", "r", encoding="utf-8") as f:
-            content = f.read()
-        return content
-    except FileNotFoundError:
-        return "Log file not found."
-    
-@app.route('/clear_txt', methods=['POST'])
-def clear_txt():
-    try:
-        with open("eat_log.txt", "w", encoding="utf-8") as f:
-            f.write("")
-        return "Log file cleared."
-    except Exception as e:
-        return f"Error clearing log file: {e}"
+        connect = connection_pool.get_connection()
+        cursor = connect.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM `take_medicine`;")
+        history = cursor.fetchall()
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+    finally:
+        if connect and connect.is_connected():
+            cursor.close()
+            connect.close()
+    return render_template('history.html', history=history, title='history')
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=7337)
