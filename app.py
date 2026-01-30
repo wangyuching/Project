@@ -15,7 +15,7 @@ db = SQLAlchemy(app)
 class take_medicine(db.Model):
     __tablename__ = 'take_medicine'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    time = db.Column(db.String(50))
+    time = db.Column(db.DateTime)
     state = db.Column(db.String(10))
     auto_finish = db.Column(db.String(50))
 
