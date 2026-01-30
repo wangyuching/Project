@@ -21,13 +21,12 @@
         .time {
             width: 30%;
             height: 80%;
-            background-color: rgb(19, 92, 155);
-            color: rgb(234, 237, 255);
+            background-color: rgb(8, 18, 26);
+            color: rgb(22, 239, 18);
             font-size: 18px;
             padding: 20px;
-            overflow-y: auto;
+            overflow-y: hidden;
             white-space: pre-line;
-            border-radius: 10px;
         }
 
         img {
@@ -39,7 +38,7 @@
 
 <body>
     <div class="time-container" style="width: 30%; display: flex; flex-direction: column; height: 90%;">
-        <div class="time" id="log-content" style="width: 100%; flex-grow: 1;">載入中...</div>
+        <div class="time" id="log-content" style="width: 100%; flex-grow: 1;">載入中...請稍候...</div>
     </div>
     <img src="{{ url_for('cap_in_html') }}" alt="Video Stream">
 </body>
@@ -49,7 +48,7 @@
 <script>
     function refreshTable() {
         // 發送請求到我們剛寫好的 API
-        fetch('/api/get_history')
+        fetch('/api/history')
             .then(response => response.json())
             .then(data => {
                 const logContent = document.getElementById("log-content");
@@ -64,7 +63,8 @@
                 let htmlContent = "";
                 data.forEach(row => {
                     htmlContent += `
-                        <p>${row.state} at: ${row.time}<br>${row.auto_finish ? ' (' + row.auto_finish + ')' : ''}</p>
+                        <p style="line-height: 1;">${row.state} at: ${row.time}
+                        <br>${row.auto_finish ? ' (' + row.auto_finish + ')' : ''}</p>
                     `;
                 });
                 

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, Response
+from flask import Flask, render_template, Response, jsonify
 from flask_sqlalchemy import SQLAlchemy
 import cv2
 import time as t
@@ -134,6 +134,18 @@ def cap_real_time():
 def home():
     history = take_medicine.query.all()
     return render_template('home.html', title='Home', history=history)
+
+@app.route('/api/history')
+def api_history():
+    history = take_medicine.query.all()
+    history_list = []
+    for record in history:
+        history_list.append({
+            'time': record.time.strftime("%Y-%m-%d %H:%M:%S"),
+            'state': record.state,
+            'auto_finish': record.auto_finish
+        })
+    return jsonify(history_list)
 
 @app.route('/cap_in_html')
 def cap_in_html():
