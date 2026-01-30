@@ -175,22 +175,5 @@ def get_history():
 def cap_in_html():
     return Response(cap_real_time(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-@app.route('/history_from_db')
-def history_from_db():
-    connect = None
-    history = []
-    try:
-        connect = connection_pool.get_connection()
-        cursor = connect.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM `take_medicine`;")
-        history = cursor.fetchall()
-    except mysql.connector.Error as err:
-        print(f"Error: {err}")
-    finally:
-        if connect and connect.is_connected():
-            cursor.close()
-            connect.close()
-    return render_template('history.html', history=history, title='history')
-
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=7337)
+    app.run(debug=True, host='127.0.0.1', port=3377)
