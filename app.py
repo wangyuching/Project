@@ -2,7 +2,6 @@ from flask import Flask, render_template, Response
 from flask_sqlalchemy import SQLAlchemy
 import cv2
 import time as t
-import datetime
 import DrawUtil
 import threading
 
@@ -16,7 +15,7 @@ db = SQLAlchemy(app)
 class take_medicine(db.Model):
     __tablename__ = 'take_medicine'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    time = db.Column(db.DateTime)
+    time = db.Column(db.String(50))
     state = db.Column(db.String(10))
     auto_finish = db.Column(db.String(50))
 
@@ -115,7 +114,7 @@ def cap_real_time():
             current_time = t.localtime()
             format_time = t.strftime("%Y-%m-%d %A %H:%M:%S", current_time)
             now = format_time
-            cv2.putText(frame, f"{datetime}", (80, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 3)  
+            cv2.putText(frame, f"{now}", (80, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 3)  
 
             # 顯示目前狀態與吃藥次數
             cv2.putText(frame, f'Current State: {current_eat_state}', (30, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 3)
@@ -133,7 +132,7 @@ def cap_real_time():
 
 @app.route('/')
 def home():
-    history = take_medicine.query.order_by(take_medicine.id.desc()).limit(5).all()
+    history = take_medicine.query.all()
     return render_template('home.html', title='Home', history=history)
 
 @app.route('/cap_in_html')
