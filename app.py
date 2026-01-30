@@ -1,51 +1,39 @@
-from flask import Flask, render_template, Response, jsonify
+from flask import Flask, render_template, Response
+from flask_sqlalchemy import SQLAlchemy
 import cv2
 import time as t
+import datetime
 import DrawUtil
-import mysql.connector
-from mysql.connector import pooling
 import threading
 
 app = Flask(__name__)
 
-from mysql.connector import pooling
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:DataBase@127.0.0.1:3306/project'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db_config = {
-    "host": "127.0.0.1",
-    "port": 3306,
-    "user": "root",
-    "password": "DataBase",
-    "database": "project"
-}
+db = SQLAlchemy(app)
 
-try:
-    connection_pool = pooling.MySQLConnectionPool(
-        pool_name="med_pool",
-        pool_size=5,
-        **db_config
-    )
-    print("Database Connection Pool 建立成功")
-except mysql.connector.Error as err:
-    print(f"建立連線池失敗: {err}")
-    connection_pool = None
+class take_medicine(db.Model):
+    __tablename__ = 'take_medicine'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    time = db.Column(db.DateTime)
+    state = db.Column(db.String(10))
+    auto_finish = db.Column(db.String(50))
+
+with app.app_context():
+    db.create_all()
 
 def save_to_db( log_time, state, auto_finish):
-    if not connection_pool:
-        print("連線池未就緒，無法寫入")
-        return
-    connect = None
-    try:
-        connect = connection_pool.get_connection()
-        cursor = connect.cursor()
-        sql = "INSERT INTO `take_medicine` (time, state, auto_finish) VALUES (%s, %s, %s)"
-        cursor.execute(sql, (log_time, state, auto_finish))
-        connect.commit()
-    except Exception as e:
-        print(f"背景寫入失敗: {e}")
-    finally:
-        if connect and connect.is_connected():
-            cursor.close()
-            connect.close()
+    with app.app_context():
+        try:
+            new_record = take_medicine(time=log_time, state=state, auto_finish=auto_finish)
+            db.session.add(new_record)
+            db.session.commit()
+            print(f"Record saved: {log_time}, {state}, {auto_finish}")
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error saving record: {e}")
+
 
 def cap_real_time():
     # dont need to change values here
@@ -127,7 +115,7 @@ def cap_real_time():
             current_time = t.localtime()
             format_time = t.strftime("%Y-%m-%d %A %H:%M:%S", current_time)
             now = format_time
-            cv2.putText(frame, f"{now}", (80, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 3)  
+            cv2.putText(frame, f"{datetime}", (80, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 3)  
 
             # 顯示目前狀態與吃藥次數
             cv2.putText(frame, f'Current State: {current_eat_state}', (30, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 3)
@@ -145,31 +133,8 @@ def cap_real_time():
 
 @app.route('/')
 def home():
-    return render_template('home.html', title='Home')
-
-@app.route('/api/get_history')
-def get_history():
-    connect = None
-    history = []
-    try:
-        connect = connection_pool.get_connection()
-        cursor = connect.cursor(dictionary=True)
-        sql = """
-            SELECT 
-                DATE_FORMAT(time, '%Y-%m-%d %H:%i:%S') as time,
-                state, 
-                auto_finish 
-            FROM `take_medicine`;
-        """
-        cursor.execute(sql)
-        history = cursor.fetchall()
-    except mysql.connector.Error as err:
-        print(f"Error: {err}")
-    finally:
-        if connect and connect.is_connected():
-            cursor.close()
-            connect.close()
-    return jsonify(history)
+    history = take_medicine.query.order_by(take_medicine.id.desc()).limit(5).all()
+    return render_template('home.html', title='Home', history=history)
 
 @app.route('/cap_in_html')
 def cap_in_html():
