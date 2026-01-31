@@ -20,12 +20,19 @@ class take_medicine(db.Model):
     state = db.Column(db.String(10))
     auto_finish = db.Column(db.String(50))
 
-
-if not os.path.exists('static/poseimgs'):
-    os.makedirs('static/pose_imgs')
-
 with app.app_context():
     db.create_all()
+
+save_path = 'static/poseImgs'
+if not os.path.exists(save_path):
+    os.makedirs(save_path)
+
+def save_image(frame,state, timestamp):
+    for i, f in enumerate(frame):
+        filename = f"{state}_{timestamp}_f{i}.jpg"
+        filepath = os.path.join(save_path, filename)
+        cv2.imwrite(filepath, f)
+    print(f"Successfully saved images: {filename}")
 
 def save_to_db( log_time, state, auto_finish):
     with app.app_context():
@@ -37,7 +44,6 @@ def save_to_db( log_time, state, auto_finish):
         except Exception as e:
             db.session.rollback()
             print(f"Error saving record: {e}")
-
 
 def cap_real_time():
     # dont need to change values here
@@ -58,11 +64,15 @@ def cap_real_time():
     # ------------------------------
     first_eat_time = 0
     # ------------------------------
+    temp_frame = []
+    # ------------------------------
     try:
         while cap.isOpened():
             ok, frame = cap.read()
             if not ok:
                 break
+
+            save_frame = frame.copy()
             
             frame_height, frame_width, _ = frame.shape
             frame = cv2.resize(frame, (int(frame_width * (650 / frame_height)), 650))
@@ -79,15 +89,18 @@ def cap_real_time():
                 current_time = t.time()
                 if is_eating_pose:
                     eating_frame_count += 1
+                    temp_frame.append(save_frame)
                     if eating_frame_count > ACTION_THRESHOLD and (current_time - last_count_time) > COOLDOWN_SECONDS:
                         count += 1
                         current_eat_state = "Eating"
-                        last_count_time = current_time
-                        eating_frame_count = 0
-                        # 記錄時間
+                        
                         log_time = t.strftime("%Y-%m-%d %H:%M:%S", t.localtime(current_time))
-
+                        file_time = t.strftime("%Y%m%d_%H%M%S", t.localtime(current_time))
                         state = "Start" if count == 1 else "Finish"
+                        if temp_frame:
+                            save_thread = threading.Thread(target=save_image, args=(list(temp_frame), state, file_time))
+                            save_thread.start()
+
                         thread = threading.Thread(target=save_to_db, args=(log_time, state, ""))
                         thread.start()
 
@@ -96,12 +109,18 @@ def cap_real_time():
                         elif count == 2:
                             count = 0
                             first_eat_time = 0
+
+                        last_count_time = current_time
+                        eating_frame_count = 0
+                        temp_frame = []
                 else:
                     eating_frame_count = 0
+                    temp_frame = []
                     current_eat_state = "Detecting" 
             else:
                 frame = cv2.flip(frame, 1)
                 cv2.putText(frame, "No Pose Detected", (80, 400), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 7)
+                temp_frame = []
 
             # 自動記錄第二次吃藥(放在if landmarks外,沒有偵測道動作時也會執行)
             current_time = t.time()
