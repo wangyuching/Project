@@ -21,6 +21,8 @@ class take_medicine(db.Model):
     auto_finish = db.Column(db.String(50))
 
 
+if not os.path.exists('static/poseimgs'):
+    os.makedirs('static/pose_imgs')
 
 with app.app_context():
     db.create_all()
