@@ -4,6 +4,7 @@ import cv2
 import time as t
 import DrawUtil
 import threading
+import os
 
 app = Flask(__name__)
 
@@ -18,6 +19,8 @@ class take_medicine(db.Model):
     time = db.Column(db.DateTime)
     state = db.Column(db.String(10))
     auto_finish = db.Column(db.String(50))
+
+
 
 with app.app_context():
     db.create_all()
@@ -132,8 +135,11 @@ def cap_real_time():
 
 @app.route('/')
 def home():
-    history = take_medicine.query.all()
-    return render_template('home.html', title='Home', history=history)
+    return render_template('home.html')
+
+@app.route('/search')
+def search():
+    return render_template('search.html')
 
 @app.route('/api/history')
 def api_history():
