@@ -10,7 +10,6 @@ app = Flask(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:DataBase@127.0.0.1:3306/project'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
 db = SQLAlchemy(app)
 
 class take_medicine(db.Model):
@@ -26,6 +25,15 @@ class take_medicine(db.Model):
 
 with app.app_context():
     db.create_all()
+
+lock = threading.Lock()
+latest_frame = None
+global_data = {
+    "count": 0,
+    "current_eat_state": "Detecting",
+    "first_eat_time": 0
+}
+last_active_time = 0
 
 def save_to_db(state, log_time, auto_finish, frames=None):
     with app.app_context():
@@ -58,8 +66,8 @@ def save_to_db(state, log_time, auto_finish, frames=None):
             db.session.rollback()
             print(f"Error saving record: {e}")
 
-def cap_real_time():
-    # dont need to change values here
+def cap_worker():
+    global latest_frame, global_data, last_active_time
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         print("Cannot open camera")
@@ -75,99 +83,116 @@ def cap_real_time():
     last_count_time = 0
     COOLDOWN_SECONDS = 2  # seconds
     # ------------------------------
-    first_eat_time = 0
-    # ------------------------------
     temp_frame = []
     # ------------------------------
+
+    print("背景 Worker 已啟動，等待網頁連線...")
+
     try:
-        while cap.isOpened():
-            ok, frame = cap.read()
-            if not ok:
-                break
-
-            save_frame = frame.copy()
-            
-            frame_height, frame_width, _ = frame.shape
-            frame = cv2.resize(frame, (int(frame_width * (650 / frame_height)), 650))
-
-            frame, landmarks = DrawUtil.show_landmarks(frame, DrawUtil.pose)
-
-            if landmarks:
-                frame, left_elbow_angle, right_elbow_angle, l_2_m_distance, r_2_m_distance = DrawUtil.detectPose(frame, landmarks)
-                
-                # 計算吃藥次數
-                # 判斷是否處於吃藥姿勢
-                is_eating_pose = (left_elbow_angle <= 60 and l_2_m_distance <= 100) or (right_elbow_angle <= 60 and r_2_m_distance <= 100)
-                # 抓時間
-                current_time = t.time()
-                if is_eating_pose:
-                    eating_frame_count += 1
-                    if len(temp_frame) < 4:
-                        temp_frame.append(save_frame)
-                    if eating_frame_count > ACTION_THRESHOLD and (current_time - last_count_time) > COOLDOWN_SECONDS:
-                        count += 1
-                        current_eat_state = "Eating"
-                        
-                        log_time = t.strftime("%Y-%m-%d %H:%M:%S", t.localtime(current_time))
-                        state = "Start" if count == 1 else "Finish"
-
-                        thread = threading.Thread(target=save_to_db, args=(state, log_time, "", list(temp_frame)))
-                        thread.start()
-
-                        if count == 1:
-                            first_eat_time = current_time
-                        elif count == 2:
-                            count = 0
-                            first_eat_time = 0
-
-                        last_count_time = current_time
-                        eating_frame_count = 0
-                        temp_frame = []
-                else:
-                    eating_frame_count = 0
-                    temp_frame = []
-                    current_eat_state = "Detecting" 
-            else:
-                frame = cv2.flip(frame, 1)
-                cv2.putText(frame, "No Pose Detected", (80, 400), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 7)
-                temp_frame = []
-
-            # 自動記錄第二次吃藥(放在if landmarks外,沒有偵測道動作時也會執行)
+        while True:
             current_time = t.time()
-            if count == 1 and first_eat_time != 0:
-                if (current_time - first_eat_time) > 30:
-                    auto_second_time = t.strftime("%Y-%m-%d %H:%M:%S", t.localtime(first_eat_time + 30))
-                    thread = threading.Thread(target=save_to_db, args=("Finish", auto_second_time, "Auto logged after 30 seconds", None))
-                    thread.start()
+            if (current_time - last_active_time) < 3:
+                if cap is None:
+                    print("--- 偵測到網頁活動，啟動攝影機 ---")
+                    cap = cv2.VideoCapture(0)
+                    cap.set(3, 1024)
+                    cap.set(4, 768)
 
-                    count = 0
-                    first_eat_time = 0
-                    current_eat_state = "Detecting"
+                if cap.isOpened():
+                    ok, frame = cap.read()
+                    if not ok:
+                        break
 
-            # 顯示目前時間
-            current_time = t.localtime()
-            format_time = t.strftime("%Y-%m-%d %A %H:%M:%S", current_time)
-            now = format_time
-            cv2.putText(frame, f"{now}", (80, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 3)  
+                    save_frame = frame.copy()
+                    frame_height, frame_width, _ = frame.shape
 
-            # 顯示目前狀態與吃藥次數
-            cv2.putText(frame, f'Current State: {current_eat_state}', (30, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 3)
-            cv2.putText(frame, f'Count: {count}', (30, 250), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 3)
+                    processed_frame = cv2.resize(frame, (int(frame_width * (650 / frame_height)), 650))
+                    processed_frame, landmarks = DrawUtil.show_landmarks(processed_frame, DrawUtil.pose)
 
-            ret, jpeg = cv2.imencode('.jpg', frame)
-            frame = jpeg.tobytes()
-            yield (b'--frame\r\n'
-                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                    current_time = t.time()
+
+                    if landmarks:
+                        processed_frame, left_elbow_angle, right_elbow_angle, l_2_m_distance, r_2_m_distance = DrawUtil.detectPose(processed_frame, landmarks)
+
+                        is_eating_pose = (left_elbow_angle <= 60 and l_2_m_distance <= 100) or (right_elbow_angle <= 60 and r_2_m_distance <= 100)                
+                        if is_eating_pose:
+                            eating_frame_count += 1
+
+                            if len(temp_frame) < 4:
+                                temp_frame.append(save_frame)
+
+                            if eating_frame_count > ACTION_THRESHOLD and (current_time - last_count_time) > COOLDOWN_SECONDS:
+                                global_data["count"] += 1
+                                global_data["current_eat_state"] = "Eating"
+                                
+                                log_time = t.strftime("%Y-%m-%d %H:%M:%S", t.localtime(current_time))
+                                state = "Start" if global_data["count"] == 1 else "Finish"
+                                threading.Thread(target=save_to_db, args=(state, log_time, "", list(temp_frame))).start()
+
+                                if global_data["count"] == 1:
+                                    global_data["first_eat_time"] = current_time
+                                elif global_data["count"] == 2:
+                                    global_data["count"] = 0
+                                    global_data["first_eat_time"] = 0
+
+                                last_count_time = current_time
+                                eating_frame_count = 0
+                                temp_frame = []
+                        else:
+                            eating_frame_count = 0
+                            temp_frame = []
+                            global_data["current_eat_state"] = "Detecting" 
+                    else:
+                        frame = cv2.flip(processed_frame, 1)
+                        cv2.putText(frame, "No Pose Detected", (80, 400), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 7)
+                        temp_frame = []
+
+                    if global_data["count"] == 1 and global_data["first_eat_time"] != 0:
+                        if (current_time - global_data["first_eat_time"]) > 30:
+                            auto_second_time = t.strftime("%Y-%m-%d %H:%M:%S", t.localtime(global_data["first_eat_time"] + 30))
+                            threading.Thread(target=save_to_db, args=("Finish", auto_second_time, "Auto logged after 30 seconds", None)).start()
+
+                            global_data["count"] = 0
+                            global_data["first_eat_time"] = 0
+
+                    now = t.strftime("%Y-%m-%d %A %H:%M:%S", t.localtime())
+                    cv2.putText(processed_frame, f"{now}", (80, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 0), 3)  
+
+                    cv2.putText(processed_frame, f'Current State: {global_data["current_eat_state"]}', (30, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 3)
+                    cv2.putText(processed_frame, f'Count: {global_data["count"]}', (30, 250), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 3)
+
+                    with lock:
+                        latest_frame = processed_frame.copy()
+            else:
+                if cap is not None:
+                    print("--- 偵測到無網頁活動，關閉攝影機 ---")
+
+                    if global_data["count"] == 1:
+                        auto_cap_close_time = t.strftime("%Y-%m-%d %H:%M:%S", t.localtime(t.time()))
+                        threading.Thread(target=save_to_db, args=("Finish", auto_cap_close_time, "Auto logged due to cap close", None)).start()
+                        
+                    cap.release()
+                    cap = None
+                    with lock:
+                        latest_frame = None
+            t.sleep(0.03)
+
     except Exception as e:
         print(f"Error in video processing: {e}")
     finally:
-        if count == 1:
-            current_time = t.time()
-            auto_cap_close_second_time = t.strftime("%Y-%m-%d %H:%M:%S", t.localtime(current_time))
-            thread = threading.Thread(target=save_to_db, args=("Finish", auto_cap_close_second_time, "Auto logged due to cap close", None))
-            thread.start() 
+        if global_data["count"] == 1:
+            auto_cap_close_second_time = t.strftime("%Y-%m-%d %H:%M:%S", t.localtime(t.time()))
+            threading.Thread(target=save_to_db, args=("Finish", auto_cap_close_second_time, "Auto logged due to cap close", None)).start() 
         cap.release()
         print("Video capture released.")
+
+threading.Thread(target=cap_worker, daemon=True).start()
+
+@app.route('/api/still_alive')
+def heartbeat():
+    global last_active_time
+    last_active_time = t.time()
+    return jsonify({"status": "alive"})
 
 @app.route('/')
 def home():
@@ -200,7 +225,20 @@ def api_history():
 
 @app.route('/cap_in_html')
 def cap_in_html():
-    return Response(cap_real_time(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    def stream():
+        while True:
+            with lock:
+                if latest_frame is None:
+                    continue
+                ret, jpeg = cv2.imencode('.jpg', latest_frame)
+                if not ret:
+                    continue
+                frame = jpeg.tobytes()
+
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+            t.sleep(0.05)
+    return Response(stream(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port=3377)
+    app.run(debug=False, host='127.0.0.1', port=3377)

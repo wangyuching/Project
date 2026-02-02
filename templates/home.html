@@ -85,9 +85,14 @@
     </div>
 </body>
 
-</html>
-
 <script>
+    function sendheartbeat(){   
+        fetch('/api/still_alive')
+            .catch(error => console.debug("Heartbeat error:", error));
+    }
+    sendheartbeat();
+    const heartbeatInterval = setInterval(sendheartbeat, 1000);
+
     function refreshTable() {
         // 發送請求到我們剛寫好的 API
         fetch('/api/history')
@@ -122,3 +127,5 @@
     // 頁面載入完成後先執行一次
     window.onload = refreshTable;
 </script>
+
+</html>

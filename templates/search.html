@@ -118,6 +118,14 @@
     </div>
 
     <script>
+
+        function sendheartbeat() {
+            fetch('/api/still_alive')
+                .catch(error => console.debug("Heartbeat error:", error));
+        }
+        sendheartbeat();
+        const heartbeatInterval = setInterval(sendheartbeat, 1000);
+
         let currentPage = 1;
         const aPageRows = 6;
 
@@ -170,7 +178,7 @@
                                 imgHtml += `
                                     <div class="col-3">
                                         <div class="img-box">
-                                            <img src="data:image/jpeg;base64,${imgBase64}" alt="Pose" onclick="window.open(this.src)">
+                                            <img src="data:image/jpeg;base64,${imgBase64}" alt="Pose" onclick="window.open(this.src, '_blank')">
                                         </div>
                                     </div>`;
                             }
