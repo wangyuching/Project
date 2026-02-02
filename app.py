@@ -161,6 +161,11 @@ def cap_real_time():
     except Exception as e:
         print(f"Error in video processing: {e}")
     finally:
+        if count == 1:
+            current_time = t.time()
+            auto_cap_close_second_time = t.strftime("%Y-%m-%d %H:%M:%S", t.localtime(current_time))
+            thread = threading.Thread(target=save_to_db, args=("Finish", auto_cap_close_second_time, "Auto logged due to cap close", None))
+            thread.start() 
         cap.release()
         print("Video capture released.")
 
