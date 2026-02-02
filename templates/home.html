@@ -19,23 +19,25 @@
         }              
         
         .pageChange {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
-            width:fit-content;
-            height:fit-content;
-            padding: 5px 0px 2px 0px;
+            z-index: 1000;
             display: flex;
             flex-direction: column;
         }
-        a {
+
+        .pageChange a {
             color: rgb(213, 219, 255);
             text-decoration: none;
-            padding: 10px;
+            padding: 15px 10px;
             writing-mode: vertical-rl;
             text-orientation: upright;
+            background-color: rgba(255, 255, 255, 0.05);
+            margin-bottom: 2px;
         }
-        a:hover {
+
+        .pageChange a:hover {
             background-color: rgb(50, 58, 66);
         }
 
@@ -70,7 +72,9 @@
 </head>
 
 <body>
-    <div class="pageChange"><a href="#">記錄中</a><a href="{{ url_for('search') }}">搜尋記錄</a></div>
+    <div class="pageChange">
+        <a href="#"style="background-color: #3498db;">記錄中</a>
+        <a href="{{ url_for('search') }}">搜尋記錄</a></div>
 
     <div class="content">
         <div class="time-container" style="width: 30%; display: flex; flex-direction: column; height: 90%;">
