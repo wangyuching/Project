@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <title>Search Page</title>
-        <style>
+    <style>
         body {
             background-color: rgb(20, 29, 37);
             margin: 0;
@@ -16,18 +16,19 @@
             flex-direction: row;
             justify-content: center;
             align-items: center;
-        }              
-        
+        }
+
         .pageChange {
             position: absolute;
             top: 0;
             left: 0;
-            width:fit-content;
-            height:fit-content;
+            width: fit-content;
+            height: fit-content;
             padding: 5px 0px 2px 0px;
             display: flex;
             flex-direction: column;
         }
+
         a {
             color: rgb(213, 219, 255);
             text-decoration: none;
@@ -35,33 +36,94 @@
             writing-mode: vertical-rl;
             text-orientation: upright;
         }
+
         a:hover {
             background-color: rgb(50, 58, 66);
+        }
+
+        #searchContainer {
+            width: 90%;
+            height: 80%;
+            color: rgb(213, 219, 255);
+            display: flex;
+            flex-direction: column;
+            overflow-y: scroll;
+            text-align: center;
+            align-items: center;
+            font-size: 18px;
         }
     </style>
 </head>
 
 <body>
     <div class="pageChange"><a href="{{ url_for('home') }}">記錄中</a><a href="#">搜尋記錄</a></div>
-
-    <table>
-        <thead>
-            <tr>
-                <th style="color: rgb(213, 219, 255); padding: 10px; border: 1px solid rgb(213, 219, 255);">Time</th>
-                <th style="color: rgb(213, 219, 255); padding: 10px; border: 1px solid rgb(213, 219, 255);">State</th>
-                <th style="color: rgb(213, 219, 255); padding: 10px; border: 1px solid rgb(213, 219, 255);">Auto Finish
-                </th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td style="color: rgb(213, 219, 255); padding: 10px; border: 1px solid rgb(213, 219, 255);">time</td>
-                <td style="color: rgb(213, 219, 255); padding: 10px; border: 1px solid rgb(213, 219, 255);">state</td>
-                <td style="color: rgb(213, 219, 255); padding: 10px; border: 1px solid rgb(213, 219, 255);">auto_finish</td>
-            </tr>
-        </tbody>
-    </table>
+    <div id="searchContainer">
+        <table class="table table-dark">
+            <thead>
+                <tr>
+                    <th>狀態</th>
+                    <th>時間(新 -> 舊)</th>
+                    <th>自動完成訊息</th>
+                    <th>動作圖片1</th>
+                    <th>動作圖片2</th>
+                    <th>動作圖片3</th>
+                    <th>動作圖片4</th>
+                </tr>
+            </thead>
+            <tbody id="logContent">
+            </tbody>
+        </table>
+    </div>
 
 </body>
 
 </html>
+
+<script>
+    function refreshTable() {
+        // 發送請求到我們剛寫好的 API
+        fetch('/api/history')
+            .then(response => response.json())
+            .then(data => {
+                const logContent = document.getElementById("logContent");
+
+                // 如果沒有資料，顯示提示
+                if (data.length === 0) {
+                    logContent.innerHTML = '目前沒有記錄。';
+                    return;
+                }
+
+                // 重新建構表格內容
+                let htmlContent = "";
+                data.reverse().forEach(row => {
+                    [row.pose_img1, row.pose_img2, row.pose_img3, row.pose_img4].forEach(imgBase64 => {
+                        if (imgBase64) {
+                            imgTag = `<img src="data:image/jpeg;base64,${imgBase64}" alt="Pose Image" style="max-width:200px; max-height:200px;">`;
+                        } else {
+                            imgTag = '無圖片';
+                        }
+                    });
+                    htmlContent += `
+                        <tr>
+                            <td>${row.state}</td>
+                            <td>${row.time}</td>
+                            <td>${row.auto_finish ? row.auto_finish : ''}</td>
+                            <td>${row.pose_img1 ? `<img src="data:image/jpeg;base64,${row.pose_img1}" alt="Pose Image 1" style="max-width:200px; max-height:200px;">` : '無圖片'}</td>
+                            <td>${row.pose_img2 ? `<img src="data:image/jpeg;base64,${row.pose_img2}" alt="Pose Image 2" style="max-width:200px; max-height:200px;">` : '無圖片'}</td>
+                            <td>${row.pose_img3 ? `<img src="data:image/jpeg;base64,${row.pose_img3}" alt="Pose Image 3" style="max-width:200px; max-height:200px;">` : '無圖片'}</td>
+                            <td>${row.pose_img4 ? `<img src="data:image/jpeg;base64,${row.pose_img4}" alt="Pose Image 4" style="max-width:200px; max-height:200px;">` : '無圖片'}</td>
+                        </tr>
+                    `;
+                });
+
+                // 將產生的 HTML 塞回 logContent
+                logContent.innerHTML = htmlContent;
+            })
+            .catch(error => console.error('Error fetching data:', error));
+    }
+
+    setInterval(refreshTable, 5000);
+
+    // 頁面載入完成後先執行一次
+    window.onload = refreshTable;
+</script>

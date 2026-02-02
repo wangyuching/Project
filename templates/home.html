@@ -99,7 +99,7 @@
 
                 // 重新建構表格內容
                 let htmlContent = "";
-                data.forEach(row => {
+                data.reverse().forEach(row => {
                     htmlContent += `
                         <p style="line-height: 1;">${row.state} at: ${row.time}
                         <br>${row.auto_finish ? ' (' + row.auto_finish + ')' : ''}</p>
@@ -108,7 +108,6 @@
 
                 // 將產生的 HTML 塞回 logContent
                 logContent.innerHTML = htmlContent;
-                logContent.scrollTop = logContent.scrollHeight; // 自動滾動到底部
             })
             .catch(error => console.error('Error fetching data:', error));
     }
