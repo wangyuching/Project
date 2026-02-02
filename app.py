@@ -4,7 +4,7 @@ import cv2
 import time as t
 import DrawUtil
 import threading
-import os
+import base64
 
 app = Flask(__name__)
 
@@ -16,31 +16,44 @@ db = SQLAlchemy(app)
 class take_medicine(db.Model):
     __tablename__ = 'take_medicine'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    time = db.Column(db.DateTime)
     state = db.Column(db.String(10))
+    time = db.Column(db.DateTime)
     auto_finish = db.Column(db.String(50))
+    pose_img1 = db.Column(db.LargeBinary(length=(2**16)-1))
+    pose_img2 = db.Column(db.LargeBinary(length=(2**16)-1))
+    pose_img3 = db.Column(db.LargeBinary(length=(2**16)-1))
+    pose_img4 = db.Column(db.LargeBinary(length=(2**16)-1))
 
 with app.app_context():
     db.create_all()
 
-save_path = 'static/poseImgs'
-if not os.path.exists(save_path):
-    os.makedirs(save_path)
-
-def save_image(frame,state, timestamp):
-    for i, f in enumerate(frame):
-        filename = f"{state}_{timestamp}_f{i}.jpg"
-        filepath = os.path.join(save_path, filename)
-        cv2.imwrite(filepath, f)
-    print(f"Successfully saved images: {filename}")
-
-def save_to_db( log_time, state, auto_finish):
+def save_to_db(state, log_time, auto_finish, frames=None):
     with app.app_context():
         try:
-            new_record = take_medicine(time=log_time, state=state, auto_finish=auto_finish)
+            blob_img = [None, None, None, None]
+            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 50]
+            if frames:
+                for i, f in enumerate(frames[:4]):
+                    if f is not None:
+                        _, buffer = cv2.imencode('.jpg', f, encode_param)
+                        img_bytes = buffer.tobytes()
+                        if len(img_bytes) < (2**16)-1:
+                            blob_img[i] = img_bytes
+                        else:
+                            print(f"Image {i+1} exceeds size limit, not saved.")
+
+            new_record = take_medicine(
+                state=state, 
+                time=log_time, 
+                auto_finish=auto_finish,
+                pose_img1=blob_img[0],
+                pose_img2=blob_img[1],
+                pose_img3=blob_img[2],
+                pose_img4=blob_img[3]
+                )
             db.session.add(new_record)
             db.session.commit()
-            print(f"Record saved: {log_time}, {state}, {auto_finish}")
+            print(f"Record saved: {state}, {log_time}, {auto_finish}, poseImg{len([b for b in blob_img if b])}")
         except Exception as e:
             db.session.rollback()
             print(f"Error saving record: {e}")
@@ -89,19 +102,16 @@ def cap_real_time():
                 current_time = t.time()
                 if is_eating_pose:
                     eating_frame_count += 1
-                    temp_frame.append(save_frame)
+                    if len(temp_frame) < 4:
+                        temp_frame.append(save_frame)
                     if eating_frame_count > ACTION_THRESHOLD and (current_time - last_count_time) > COOLDOWN_SECONDS:
                         count += 1
                         current_eat_state = "Eating"
                         
                         log_time = t.strftime("%Y-%m-%d %H:%M:%S", t.localtime(current_time))
-                        file_time = t.strftime("%Y%m%d_%H%M%S", t.localtime(current_time))
                         state = "Start" if count == 1 else "Finish"
-                        if temp_frame:
-                            save_thread = threading.Thread(target=save_image, args=(list(temp_frame), state, file_time))
-                            save_thread.start()
 
-                        thread = threading.Thread(target=save_to_db, args=(log_time, state, ""))
+                        thread = threading.Thread(target=save_to_db, args=(state, log_time, "", list(temp_frame)))
                         thread.start()
 
                         if count == 1:
@@ -127,7 +137,7 @@ def cap_real_time():
             if count == 1 and first_eat_time != 0:
                 if (current_time - first_eat_time) > 30:
                     auto_second_time = t.strftime("%Y-%m-%d %H:%M:%S", t.localtime(first_eat_time + 30))
-                    thread = threading.Thread(target=save_to_db, args=(auto_second_time, "Finish", "Auto logged after 30 seconds"))
+                    thread = threading.Thread(target=save_to_db, args=("Finish", auto_second_time, "Auto logged after 30 seconds", None))
                     thread.start()
 
                     count = 0
@@ -167,10 +177,19 @@ def api_history():
     history = take_medicine.query.all()
     history_list = []
     for record in history:
+        def to_base64(img_blob):
+            if img_blob:
+                return base64.b64encode(img_blob).decode('utf-8')
+            return None
+
         history_list.append({
-            'time': record.time.strftime("%Y-%m-%d %H:%M:%S"),
             'state': record.state,
-            'auto_finish': record.auto_finish
+            'time': record.time.strftime("%Y-%m-%d %H:%M:%S"),
+            'auto_finish': record.auto_finish,
+            'pose_img1': to_base64(record.pose_img1),
+            'pose_img2': to_base64(record.pose_img2),
+            'pose_img3': to_base64(record.pose_img3),
+            'pose_img4': to_base64(record.pose_img4)
         })
     return jsonify(history_list)
 
