@@ -97,35 +97,88 @@
     </div>
 
     <div id="searchContainer" class="container-fluid">
-        <h2 class="mb-4 text-center">搜尋記錄</h2>
+        <h2 class="mb-4 text-center">搜尋記錄 ( 新 ↓ 舊)</h2>
+        <div class="row mb-4 justify-content-center">
+            <div class="col-md-4 col-lg-3">
+                <div class="input-group">
+                    <span class="input-group-text bg-dark text-white border-secondary">選擇日期</span>
+                    <input type="date" id="dateFilter" class="form-control bg-dark text-white border-secondary"
+                        onchange="refreshTable()">
+                    <button class="btn btn-outline-secondary" type="button"
+                        onclick="document.getElementById('dateFilter').value=''; refreshTable();">清除</button>
+                </div>
+            </div>
+        </div>
         <div id="logContent" class="row g-3">
         </div>
+
+        <nav aria-label="Page navigation" class="mt-5">
+            <ul id="pagination" class="pagination justify-content-center"></ul>
+        </nav>
     </div>
 
     <script>
+
+        function sendheartbeat() {
+            fetch('/api/still_alive')
+                .catch(error => console.debug("Heartbeat error:", error));
+        }
+        sendheartbeat();
+        const heartbeatInterval = setInterval(sendheartbeat, 1000);
+
+        let currentPage = 1;
+        const aPageRows = 6;
+
+        function resetAndRefresh() {
+            currentPage = 1;
+            refreshTable();
+        }
+
         function refreshTable() {
+            const selectedDate = document.getElementById("dateFilter").value;
             fetch('/api/history')
                 .then(response => response.json())
                 .then(data => {
                     const logContent = document.getElementById("logContent");
+                    const pagination = document.getElementById("pagination");
 
                     if (!data || data.length === 0) {
                         logContent.innerHTML = `<div class="col-12 text-center mt-5"><h1 style="color: #555;">目前沒有記錄。</h1></div>`;
+                        pagination.innerHTML = '';
+                        return;
+                    }
+
+                    let filteredData = data.slice().reverse();
+                    if (selectedDate) {
+                        filteredData = filteredData.filter(row => row.time && row.time.includes(selectedDate));
+                    }
+
+                    const totalRows = filteredData.length;
+                    const totalSmallPages = Math.ceil(totalRows / aPageRows);
+
+                    if (currentPage > totalSmallPages) currentPage = totalSmallPages || 1;
+
+                    const startIdx = (currentPage - 1) * aPageRows;
+                    const endIdx = startIdx + aPageRows;
+                    const paginatedData = filteredData.slice(startIdx, endIdx);
+
+                    if (paginatedData.length === 0) {
+                        logContent.innerHTML = `<div class="col-12 text-center mt-5"><h3 style="color: #777;">該日期沒有記錄。</h3></div>`;
+                        pagination.innerHTML = '';
                         return;
                     }
 
                     let htmlContent = "";
-                    // 反轉資料 (新 -> 舊)
-                    data.reverse().forEach(row => {
+                    paginatedData.forEach(row => {
                         const images = [row.pose_img1, row.pose_img2, row.pose_img3, row.pose_img4];
                         let imgHtml = "";
-                        
+
                         images.forEach(imgBase64 => {
                             if (imgBase64) {
                                 imgHtml += `
                                     <div class="col-3">
                                         <div class="img-box">
-                                            <img src="data:image/jpeg;base64,${imgBase64}" alt="Pose" onclick="window.open(this.src)">
+                                            <img src="data:image/jpeg;base64,${imgBase64}" alt="Pose" onclick="window.open(this.src, '_blank')">
                                         </div>
                                     </div>`;
                             }
@@ -150,12 +203,56 @@
                     });
 
                     logContent.innerHTML = htmlContent;
+
+                    renderPagination(totalSmallPages);
                 })
                 .catch(error => console.error('Error fetching data:', error));
         }
 
-        setInterval(refreshTable, 5000);
+        function renderPagination(totalPages) {
+            const pagination = document.getElementById("pagination");
+            let pgHtml = "";
+
+            pgHtml += `
+                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link bg-dark text-white border-secondary" href="#" onclick="changePage(${currentPage - 1})">上一頁</a>
+                </li>`;
+
+            for (let i = 1; i <= totalPages; i++) {
+                pgHtml += `
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link ${i === currentPage ? 'bg-primary border-primary' : 'bg-dark text-white border-secondary'}" 
+                       href="#" onclick="changePage(${i})">${i}</a>
+                </li>`;
+
+            }
+
+            pgHtml += `
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link bg-dark text-white border-secondary" href="#" onclick="changePage(${currentPage + 1})">下一頁</a>
+                </li>`;
+            pagination.innerHTML = pgHtml;
+        }
+
+        function changePage(page) {
+            event.preventDefault();
+            currentPage = page;
+            refreshTable();
+
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        setInterval(() => {
+            if (currentPage === 1) {
+                refreshTable();
+            }
+        }, 5000
+        );
         window.onload = refreshTable;
     </script>
 </body>
+
 </html>
