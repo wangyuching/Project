@@ -170,6 +170,10 @@ def cap_real_time():
         print("Video capture released.")
 
 @app.route('/')
+def index():
+    return render_template('search.html')
+
+@app.route('/home')
 def home():
     return render_template('home.html')
 
